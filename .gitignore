@@ -5,3 +5,8 @@ __pycache__/
 *.pyd
 *.csv
 .streamlit/secrets.toml
+*.log
+*.db
+frontend/node_modules/
+frontend/dist/
+frontend/.env

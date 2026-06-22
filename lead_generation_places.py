@@ -8,6 +8,7 @@ from typing import Callable, Dict, List, Optional, Set, Tuple
 from urllib.parse import urljoin
 
 import requests
+from bs4 import BeautifulSoup
 from dotenv import load_dotenv
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
@@ -263,29 +264,96 @@ def extract_emails_from_text(text: str) -> Set[str]:
     return filtered
 
 
+CONTACT_LINK_KEYWORDS = ("contact", "about", "support", "reach", "get-in-touch", "enquir", "inquir")
+CONTACT_PATH_GUESSES = (
+    "contact",
+    "contact-us",
+    "contactus",
+    "about",
+    "about-us",
+    "aboutus",
+    "support",
+)
+
+
+def _discover_contact_links(base_url: str, html: str, limit: int = 5) -> List[str]:
+    try:
+        soup = BeautifulSoup(html, "html.parser")
+    except Exception:
+        return []
+
+    found: List[str] = []
+    seen: Set[str] = set()
+    for anchor in soup.find_all("a", href=True):
+        href = anchor["href"].strip()
+        if not href or href.startswith(("javascript:", "#")):
+            continue
+        link_text = (anchor.get_text() or "").lower()
+        haystack = f"{href.lower()} {link_text}"
+        if not any(keyword in haystack for keyword in CONTACT_LINK_KEYWORDS):
+            continue
+        absolute = urljoin(base_url, href)
+        if absolute in seen:
+            continue
+        seen.add(absolute)
+        found.append(absolute)
+        if len(found) >= limit:
+            break
+    return found
+
+
+def _extract_mailto_emails(html: str) -> Set[str]:
+    try:
+        soup = BeautifulSoup(html, "html.parser")
+    except Exception:
+        return set()
+
+    emails: Set[str] = set()
+    for anchor in soup.find_all("a", href=True):
+        href = anchor["href"].strip()
+        if href.lower().startswith("mailto:"):
+            address = href[7:].split("?")[0].strip()
+            if address:
+                emails.add(address.lower())
+    return emails
+
+
 def scrape_emails_for_website(session: requests.Session, website_url: str) -> str:
     if not website_url:
         return ""
 
-    pages_to_try = [
-        website_url,
-        urljoin(website_url.rstrip("/") + "/", "contact"),
-        urljoin(website_url.rstrip("/") + "/", "contact-us"),
-    ]
-
+    base = website_url.rstrip("/") + "/"
     found_emails: Set[str] = set()
-    for url in pages_to_try:
+    visited: Set[str] = set()
+    headers = {"User-Agent": "Mozilla/5.0 (compatible; LeadGenBot/1.0)"}
+
+    def fetch(url: str) -> Optional[str]:
+        if url in visited:
+            return None
+        visited.add(url)
         try:
-            resp = session.get(
-                url,
-                timeout=20,
-                headers={"User-Agent": "Mozilla/5.0 (compatible; LeadGenBot/1.0)"},
-            )
+            resp = session.get(url, timeout=20, headers=headers)
             if resp.status_code >= 400:
-                continue
-            found_emails.update(extract_emails_from_text(resp.text))
+                return None
+            return resp.text
         except requests.RequestException:
+            return None
+
+    homepage_html = fetch(website_url)
+    discovered_links: List[str] = []
+    if homepage_html:
+        found_emails.update(extract_emails_from_text(homepage_html))
+        found_emails.update(_extract_mailto_emails(homepage_html))
+        discovered_links = _discover_contact_links(website_url, homepage_html)
+
+    pages_to_try = (discovered_links + [urljoin(base, path) for path in CONTACT_PATH_GUESSES])[:8]
+
+    for url in pages_to_try:
+        html = fetch(url)
+        if not html:
             continue
+        found_emails.update(extract_emails_from_text(html))
+        found_emails.update(_extract_mailto_emails(html))
 
     return "; ".join(sorted(found_emails))
 
