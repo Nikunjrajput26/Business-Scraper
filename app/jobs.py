@@ -40,34 +40,34 @@ def execute_run(run_id: str, requested_max_records: int) -> None:
                 include_email_scrape=True,
                 progress_cb=None,
             )
-        except Exception as exc:  # noqa: BLE001 - surface any pipeline failure to the user
+
+            for record in records:
+                db.add(
+                    Lead(
+                        run_id=run.id,
+                        business_name=record.business_name,
+                        phone_number=record.phone_number,
+                        website=record.website,
+                        address=record.address,
+                        rating=record.rating,
+                        total_reviews=record.total_reviews,
+                        category=record.category,
+                        city=record.city,
+                        country=record.country,
+                        email=record.email,
+                    )
+                )
+
+            run.record_count = len(records)
+            run.status = "completed"
+            run.finished_at = datetime.now(timezone.utc)
+            user.leads_used_this_period += len(records)
+            db.commit()
+        except Exception as exc:  # noqa: BLE001 - surface any pipeline/save failure to the user
+            db.rollback()
             run.status = "failed"
             run.error_message = str(exc)
             run.finished_at = datetime.now(timezone.utc)
             db.commit()
-            return
-
-        for record in records:
-            db.add(
-                Lead(
-                    run_id=run.id,
-                    business_name=record.business_name,
-                    phone_number=record.phone_number,
-                    website=record.website,
-                    address=record.address,
-                    rating=record.rating,
-                    total_reviews=record.total_reviews,
-                    category=record.category,
-                    city=record.city,
-                    country=record.country,
-                    email=record.email,
-                )
-            )
-
-        run.record_count = len(records)
-        run.status = "completed"
-        run.finished_at = datetime.now(timezone.utc)
-        user.leads_used_this_period += len(records)
-        db.commit()
     finally:
         db.close()

@@ -60,6 +60,6 @@ class Lead(Base):
     category: Mapped[str] = mapped_column(String(255), default="")
     city: Mapped[str] = mapped_column(String(255), default="")
     country: Mapped[str] = mapped_column(String(255), default="")
-    email: Mapped[str] = mapped_column(String(255), default="")
+    email: Mapped[str] = mapped_column(Text, default="")
 
     run: Mapped["Run"] = relationship(back_populates="leads")
