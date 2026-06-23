@@ -67,4 +67,17 @@ def _run_lightweight_migrations() -> None:
             "smtp_from_name": "VARCHAR(255)",
         },
     )
-    _add_missing("leads", {"ai_pitch": "TEXT"})
+    _add_missing(
+        "leads",
+        {
+            "ai_pitch": "TEXT",
+            "status": "VARCHAR(20)",
+            "emailed_at": "TIMESTAMP",
+            "created_at": "TIMESTAMP",
+            "notes": "TEXT",
+            "follow_up_date": "TIMESTAMP",
+        },
+    )
+    # Backfill status for leads that predate the CRM columns.
+    with engine.begin() as conn:
+        conn.execute(text("UPDATE leads SET status = 'new' WHERE status IS NULL"))

@@ -9,6 +9,7 @@ from fastapi.responses import StreamingResponse
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.util import get_remote_address
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.ai import generate_pitch, normalize_provider
@@ -18,12 +19,15 @@ from app.db import get_db, init_db
 from app.email_send import send_email
 from app.jobs import execute_run
 from app.models import Lead, Run, User
-from app.plans import PLANS, list_addons, list_plans, plan_quota
+from app.plans import PLANS, list_addons, list_plans, plan_allows, plan_quota
 from app.schemas import (
     AiKeyRequest,
     ApiKeyRequest,
     ChangePasswordRequest,
+    LEAD_STATUSES,
     LeadResponse,
+    LeadStatusRequest,
+    LeadUpdateRequest,
     LoginRequest,
     PlanSelectRequest,
     RunCreateRequest,
@@ -31,6 +35,7 @@ from app.schemas import (
     SendEmailRequest,
     SignupRequest,
     SmtpSettingsRequest,
+    StatsResponse,
     TokenResponse,
     UserResponse,
 )
@@ -336,6 +341,11 @@ def generate_lead_pitch(
     lead_id: str, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)
 ) -> Lead:
     lead = _get_owned_lead(lead_id, db, current_user)
+    if not plan_allows(current_user.plan, "ai_suggestions"):
+        raise HTTPException(
+            status_code=402,
+            detail="AI suggestions are available on the Growth and Enterprise plans. Upgrade to enable them.",
+        )
     if not current_user.has_ai_key:
         raise HTTPException(
             status_code=400,
@@ -360,13 +370,125 @@ def email_lead(
     current_user: User = Depends(get_current_user),
 ) -> dict:
     lead = _get_owned_lead(lead_id, db, current_user)
+    if not plan_allows(current_user.plan, "email_outreach"):
+        raise HTTPException(
+            status_code=402,
+            detail="Email outreach is available on paid plans. Upgrade to send emails to leads.",
+        )
     # The scraped email column can hold several addresses ("a@x.com; b@y.com").
     to_address = (lead.email or "").split(";")[0].strip()
     try:
         send_email(current_user, to_address, payload.subject, payload.body)
     except RuntimeError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
+    lead.emailed_at = datetime.utcnow()
+    if lead.status in (None, "new"):
+        lead.status = "contacted"
+    db.commit()
     return {"sent_to": to_address}
+
+
+@app.post("/leads/{lead_id}/status", response_model=LeadResponse)
+def set_lead_status(
+    lead_id: str,
+    payload: LeadStatusRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> Lead:
+    status_value = payload.status.strip().lower()
+    if status_value not in LEAD_STATUSES:
+        raise HTTPException(status_code=400, detail="Invalid status.")
+    lead = _get_owned_lead(lead_id, db, current_user)
+    lead.status = status_value
+    db.commit()
+    db.refresh(lead)
+    return lead
+
+
+@app.patch("/leads/{lead_id}", response_model=LeadResponse)
+def update_lead(
+    lead_id: str,
+    payload: LeadUpdateRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> Lead:
+    """Update CRM fields on a lead: status, notes, follow-up date."""
+    lead = _get_owned_lead(lead_id, db, current_user)
+    fields = payload.model_fields_set
+    if "status" in fields and payload.status is not None:
+        status_value = payload.status.strip().lower()
+        if status_value not in LEAD_STATUSES:
+            raise HTTPException(status_code=400, detail="Invalid status.")
+        lead.status = status_value
+    if "notes" in fields:
+        lead.notes = payload.notes
+    if "follow_up_date" in fields:
+        lead.follow_up_date = payload.follow_up_date  # may be None to clear
+    db.commit()
+    db.refresh(lead)
+    return lead
+
+
+@app.get("/me/leads", response_model=list[LeadResponse])
+def all_leads(
+    status: str | None = None,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> list[Lead]:
+    """Every lead across the user's runs, optionally filtered by status."""
+    query = db.query(Lead).join(Run).filter(Run.user_id == current_user.id)
+    if status:
+        query = query.filter(Lead.status == status.strip().lower())
+    return query.order_by(Lead.created_at.desc()).limit(1000).all()
+
+
+@app.get("/me/stats", response_model=StatsResponse)
+def get_stats(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)) -> StatsResponse:
+    base = db.query(Lead).join(Run).filter(Run.user_id == current_user.id)
+    total = base.count()
+    emailed = base.filter(Lead.emailed_at.isnot(None)).count()
+    rows = (
+        db.query(Lead.status, func.count(Lead.id))
+        .join(Run)
+        .filter(Run.user_id == current_user.id)
+        .group_by(Lead.status)
+        .all()
+    )
+    counts = {"new": 0, "contacted": 0, "replied": 0, "won": 0, "lost": 0}
+    for status_value, count in rows:
+        key = status_value or "new"
+        counts[key] = counts.get(key, 0) + count
+    runs = db.query(Run).filter(Run.user_id == current_user.id).count()
+
+    # Average days from a lead being collected to first email.
+    timed = (
+        base.with_entities(Lead.created_at, Lead.emailed_at)
+        .filter(Lead.emailed_at.isnot(None), Lead.created_at.isnot(None))
+        .all()
+    )
+    avg_days = None
+    if timed:
+        deltas = [(e - c).total_seconds() / 86400 for c, e in timed if e and c]
+        if deltas:
+            avg_days = round(sum(deltas) / len(deltas), 1)
+
+    # Follow-ups due now (date in the past/today, still open).
+    follow_ups_due = (
+        base.filter(
+            Lead.follow_up_date.isnot(None),
+            Lead.follow_up_date <= datetime.utcnow(),
+            Lead.status.notin_(["won", "lost"]),
+        ).count()
+    )
+
+    return StatsResponse(
+        total_leads=total,
+        emailed=emailed,
+        runs=runs,
+        avg_days_to_contact=avg_days,
+        follow_ups_due=follow_ups_due,
+        **counts,
+    )
 
 
 @app.get("/runs/{run_id}/export.csv")

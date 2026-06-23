@@ -848,34 +848,140 @@ tbody tr:last-child td {
 }
 
 .leads-table .col-business {
-  width: 22%;
+  width: 19%;
 }
 
 .leads-table .col-phone {
-  width: 13%;
+  width: 12%;
 }
 
 .leads-table .col-rating {
-  width: 7%;
-}
-
-.leads-table .col-city {
-  width: 11%;
-}
-
-.leads-table .col-email {
-  width: 22%;
-}
-
-.leads-table .col-website {
   width: 6%;
 }
 
-.leads-table .col-actions {
-  width: 19%;
-  overflow: visible;
-  white-space: nowrap;
+.leads-table .col-city {
+  width: 10%;
 }
+
+.leads-table .col-email {
+  width: 20%;
+}
+
+.leads-table .col-website {
+  width: 5%;
+}
+
+.leads-table .col-actions {
+  width: 28%;
+  overflow: visible;
+}
+
+.row-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.status-select {
+  width: auto;
+  padding: 5px 8px;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 7px;
+  border: 1px solid var(--border-strong);
+}
+.status-select.status-new { color: var(--text-dim); }
+.status-select.status-contacted { color: #b3690a; background: var(--warn-bg); border-color: transparent; }
+.status-select.status-replied { color: #4338ca; background: var(--accent-soft); border-color: transparent; }
+.status-select.status-won { color: var(--success-text); background: var(--success-bg); border-color: transparent; }
+.status-select.status-lost { color: var(--danger-text); background: var(--danger-bg); border-color: transparent; }
+
+/* ---------- Pipeline tab ---------- */
+.pipeline-row {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 12px;
+}
+.pipeline-row .pipeline-stage {
+  display: block;
+  width: 100%;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 16px;
+  text-align: center;
+  cursor: pointer;
+  box-shadow: none;
+  color: var(--text);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.pipeline-row .pipeline-stage:hover:not(:disabled) {
+  background: #fff;
+  border-color: var(--text-faint);
+}
+.pipeline-row .pipeline-stage.active {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+.pipeline-row .pipeline-stage.stage-contacted { background: var(--warn-bg); border-color: transparent; }
+.pipeline-row .pipeline-stage.stage-replied { background: var(--accent-soft); border-color: transparent; }
+.pipeline-row .pipeline-stage.stage-won { background: var(--success-bg); border-color: transparent; }
+.pipeline-row .pipeline-stage.stage-lost { background: var(--danger-bg); border-color: transparent; }
+.pipeline-count {
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--text);
+}
+.pipeline-label {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-dim);
+  margin-top: 4px;
+}
+
+@media (max-width: 760px) {
+  .pipeline-row { grid-template-columns: repeat(3, 1fr); }
+}
+
+/* ---------- All-leads (CRM) table ---------- */
+.all-leads-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 820px;
+}
+.all-leads-table th,
+.all-leads-table td {
+  text-align: left;
+  padding: 10px 12px;
+  font-size: 13px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+}
+.all-leads-table th {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-faint);
+  font-weight: 600;
+}
+.all-leads-table td.b { font-weight: 600; max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.all-leads-table td.dim { color: var(--text-dim); max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.all-leads-table td.acts { text-align: right; }
+.all-leads-table tbody tr:last-child td { border-bottom: none; }
+
+.followup-input,
+.notes-input {
+  padding: 6px 9px;
+  font-size: 12.5px;
+  border-radius: 7px;
+  border: 1px solid var(--border-strong);
+}
+.followup-input { width: 140px; }
+.followup-input.overdue { border-color: var(--danger-text); color: var(--danger-text); }
+.notes-input { width: 100%; min-width: 160px; }
 
 /* ---------- Misc ---------- */
 

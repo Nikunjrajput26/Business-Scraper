@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { LayoutDashboard, CreditCard, Settings, LogOut, Search, ListChecks, Users, History } from "lucide-react";
+import { LayoutDashboard, CreditCard, Settings, LogOut, Search, ListChecks, Users, History, Target, Send, Clock } from "lucide-react";
 import { api } from "../api";
 import { useAuth } from "../AuthContext";
 import RunForm from "./RunForm";
 import RunsList from "./RunsList";
 import LeadsTable from "./LeadsTable";
+import AllLeads from "./AllLeads";
 import PlanCards from "./marketing/PlanCards";
 import AddonBanner from "./marketing/AddonBanner";
 
@@ -28,7 +29,17 @@ export default function Dashboard() {
   const [pw, setPw] = useState({ current: "", next: "", confirm: "" });
   const [pwBusy, setPwBusy] = useState(false);
   const [pwMsg, setPwMsg] = useState("");
+  const [stats, setStats] = useState(null);
+  const [statusFilter, setStatusFilter] = useState("");
   const pollRef = useRef(null);
+
+  const loadStats = useCallback(() => {
+    api.getStats().then(setStats).catch(() => setStats(null));
+  }, []);
+
+  useEffect(() => {
+    if (tab === "pipeline") loadStats();
+  }, [tab, loadStats]);
 
   const handleChangePassword = async () => {
     setPwMsg("");
@@ -222,6 +233,14 @@ export default function Dashboard() {
           </button>
           <button
             type="button"
+            className={`nav-item${tab === "pipeline" ? " active" : ""}`}
+            onClick={() => setTab("pipeline")}
+          >
+            <Target size={16} strokeWidth={2} />
+            Pipeline
+          </button>
+          <button
+            type="button"
             className={`nav-item${tab === "history" ? " active" : ""}`}
             onClick={() => setTab("history")}
           >
@@ -271,6 +290,7 @@ export default function Dashboard() {
         <header className="topbar">
           <h1>
             {tab === "dashboard" && "Dashboard"}
+            {tab === "pipeline" && "Pipeline"}
             {tab === "history" && "History"}
             {tab === "billing" && "Billing"}
             {tab === "settings" && "Settings"}
@@ -330,6 +350,94 @@ export default function Dashboard() {
 
               <section className="panel card leads-panel">
                 <LeadsTable run={selectedRun} leads={leads} />
+              </section>
+            </>
+          )}
+
+          {tab === "pipeline" && (
+            <>
+              <div className="stat-row" style={{ gridTemplateColumns: "repeat(4, 1fr)" }}>
+                <div className="stat-card">
+                  <div className="stat-icon">
+                    <ListChecks size={16} strokeWidth={2} />
+                  </div>
+                  <div className="stat-label">Leads collected</div>
+                  <div className="stat-value">{stats?.total_leads ?? "—"}</div>
+                  <div className="stat-sub">across all searches</div>
+                </div>
+                <div className="stat-card">
+                  <div className="stat-icon">
+                    <Send size={16} strokeWidth={2} />
+                  </div>
+                  <div className="stat-label">Emails sent</div>
+                  <div className="stat-value">{stats?.emailed ?? "—"}</div>
+                  <div className="stat-sub">
+                    {stats && stats.total_leads
+                      ? `${Math.round((stats.emailed / stats.total_leads) * 100)}% of leads contacted`
+                      : "via your SMTP"}
+                  </div>
+                </div>
+                <div className="stat-card">
+                  <div className="stat-icon">
+                    <Clock size={16} strokeWidth={2} />
+                  </div>
+                  <div className="stat-label">Avg. time to contact</div>
+                  <div className="stat-value">
+                    {stats?.avg_days_to_contact != null ? `${stats.avg_days_to_contact}d` : "—"}
+                  </div>
+                  <div className="stat-sub">collected → first email</div>
+                </div>
+                <div className="stat-card">
+                  <div className="stat-icon">
+                    <Target size={16} strokeWidth={2} />
+                  </div>
+                  <div className="stat-label">Follow-ups due</div>
+                  <div className="stat-value">{stats?.follow_ups_due ?? "—"}</div>
+                  <div className="stat-sub">on or before today</div>
+                </div>
+              </div>
+
+              <section className="card" style={{ marginBottom: 24 }}>
+                <div className="card-header">
+                  <div>
+                    <h3>Pipeline</h3>
+                    <p>Click a stage to filter the leads below. Win rate counts active+closed leads.</p>
+                  </div>
+                </div>
+                <div className="card-body">
+                  <div className="pipeline-row">
+                    {[
+                      ["", "All"],
+                      ["new", "New"],
+                      ["contacted", "Contacted"],
+                      ["replied", "Replied"],
+                      ["won", "Won"],
+                      ["lost", "Lost"],
+                    ].map(([key, label]) => (
+                      <button
+                        type="button"
+                        className={`pipeline-stage stage-${key || "all"}${statusFilter === key ? " active" : ""}`}
+                        key={key || "all"}
+                        onClick={() => setStatusFilter(key)}
+                      >
+                        <div className="pipeline-count">
+                          {key === "" ? stats?.total_leads ?? "—" : stats ? stats[key] : "—"}
+                        </div>
+                        <div className="pipeline-label">{label}</div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </section>
+
+              <section className="card leads-panel">
+                <div className="card-header">
+                  <div>
+                    <h3>{statusFilter ? `${statusFilter} leads` : "All leads"}</h3>
+                    <p>Set status, add a follow-up date and notes, or email any lead.</p>
+                  </div>
+                </div>
+                <AllLeads statusFilter={statusFilter} onChanged={loadStats} />
               </section>
             </>
           )}

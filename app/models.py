@@ -92,5 +92,19 @@ class Lead(Base):
     email: Mapped[str] = mapped_column(Text, default="")
     # AI-generated "what services could you sell this business" suggestions.
     ai_pitch: Mapped[str] = mapped_column(Text, nullable=True)
+    # Lightweight CRM tracking: new | contacted | replied | won | lost
+    status: Mapped[str] = mapped_column(String(20), default="new")
+    emailed_at: Mapped[datetime] = mapped_column(DateTime, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=_now)
+    notes: Mapped[str] = mapped_column(Text, nullable=True)
+    follow_up_date: Mapped[datetime] = mapped_column(DateTime, nullable=True)
 
     run: Mapped["Run"] = relationship(back_populates="leads")
+
+    @property
+    def run_search_terms(self) -> str:
+        return self.run.search_terms if self.run else ""
+
+    @property
+    def run_location(self) -> str:
+        return self.run.location_query if self.run else ""

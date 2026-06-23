@@ -106,9 +106,41 @@ class LeadResponse(BaseModel):
     country: str
     email: str
     ai_pitch: Optional[str] = None
+    status: Optional[str] = "new"
+    emailed_at: Optional[datetime] = None
+    notes: Optional[str] = None
+    follow_up_date: Optional[datetime] = None
+    run_search_terms: Optional[str] = None
+    run_location: Optional[str] = None
 
     class Config:
         from_attributes = True
+
+
+LEAD_STATUSES = ("new", "contacted", "replied", "won", "lost")
+
+
+class LeadStatusRequest(BaseModel):
+    status: str = Field(description="new | contacted | replied | won | lost")
+
+
+class LeadUpdateRequest(BaseModel):
+    status: Optional[str] = None
+    notes: Optional[str] = None
+    follow_up_date: Optional[datetime] = None
+
+
+class StatsResponse(BaseModel):
+    total_leads: int
+    emailed: int
+    new: int
+    contacted: int
+    replied: int
+    won: int
+    lost: int
+    runs: int
+    avg_days_to_contact: Optional[float] = None
+    follow_ups_due: int = 0
 
 
 class RunResponse(BaseModel):

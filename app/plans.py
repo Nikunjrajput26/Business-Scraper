@@ -24,6 +24,8 @@ PLANS = {
         "monthly_lead_quota": 200,
         "tagline": "Kick the tyres on real lead data.",
         "cta": "Start free",
+        "email_outreach": False,
+        "ai_suggestions": False,
         "features": [
             "200 leads / month",
             "Google Places search by keyword + location",
@@ -38,11 +40,14 @@ PLANS = {
         "monthly_lead_quota": 2000,
         "tagline": "For solo founders and freelancers shipping outreach.",
         "cta": "Choose Starter",
+        "email_outreach": True,
+        "ai_suggestions": False,
         "features": [
             "2,000 leads / month",
             "Everything in Free",
             "Email + phone enrichment",
             "De-duplicated lead lists",
+            "Email outreach (your own SMTP)",
         ],
     },
     "growth": {
@@ -52,9 +57,12 @@ PLANS = {
         "monthly_lead_quota": 6000,
         "tagline": "For agencies and teams running outreach at scale.",
         "cta": "Choose Growth",
+        "email_outreach": True,
+        "ai_suggestions": True,
         "features": [
             "6,000 leads / month",
             "Everything in Starter",
+            "AI service suggestions per lead",
             "Priority scraping queue",
             "Bulk multi-term searches",
             "Email support",
@@ -67,6 +75,8 @@ PLANS = {
         "monthly_lead_quota": UNLIMITED_QUOTA,
         "tagline": "Unlimited volume on a managed API we provision for you.",
         "cta": "Contact sales",
+        "email_outreach": True,
+        "ai_suggestions": True,
         "features": [
             "Unlimited leads — we provide the API",
             "Everything in Growth",
@@ -99,6 +109,11 @@ ADDONS = {
 def get_plan(plan_id: str) -> dict:
     """Return the plan dict for an id, falling back to the default plan."""
     return PLANS.get(plan_id, PLANS[DEFAULT_PLAN])
+
+
+def plan_allows(plan_id: str, feature: str) -> bool:
+    """Whether a plan includes a gated feature (e.g. 'ai_suggestions')."""
+    return bool(get_plan(plan_id).get(feature, False))
 
 
 def plan_quota(plan_id: str) -> int:

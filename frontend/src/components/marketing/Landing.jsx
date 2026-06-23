@@ -1,5 +1,6 @@
+import { Fragment } from "react";
 import { Link } from "react-router-dom";
-import { Search, Mail, Download, KeyRound, Sparkles, Send, Check, FileSpreadsheet } from "lucide-react";
+import { Search, Mail, Download, KeyRound, Sparkles, Send, Check } from "lucide-react";
 import MarketingNav from "./MarketingNav";
 import PlanCards from "./PlanCards";
 import AddonBanner from "./AddonBanner";
@@ -98,41 +99,61 @@ export default function Landing() {
 
         {/* A spreadsheet of everything we scrape */}
         <div className="mkt-hero-visual">
-          <div className="mkt-sheet">
-            <div className="mkt-sheet-bar">
-              <span className="fname">
-                <FileSpreadsheet size={15} strokeWidth={2} />
-                leads_dentists_austin.csv
+          <div className="mkt-window">
+            <div className="mkt-window-bar">
+              <i />
+              <i />
+              <i />
+              <span className="url">app.leadscraper.io/dashboard</span>
+              <span className="win-export">
+                <Download size={12} strokeWidth={2} /> Export CSV
               </span>
-              <span className="rows">237 rows · 10 fields</span>
             </div>
-            <table className="mkt-sheet-table">
+            <table className="mkt-app-table">
               <thead>
                 <tr>
                   <th>Business</th>
-                  <th>Phone</th>
                   <th>Email</th>
-                  <th>Website</th>
                   <th>Rating</th>
-                  <th>Reviews</th>
-                  <th>Category</th>
-                  <th>City</th>
-                  <th>Country</th>
+                  <th aria-label="Actions" />
                 </tr>
               </thead>
               <tbody>
-                {MOCK_LEADS.map((l) => (
-                  <tr key={l.name}>
-                    <td className="b">{l.name}</td>
-                    <td>{l.phone}</td>
-                    <td>{l.email}</td>
-                    <td>{l.website}</td>
-                    <td className="rt">★ {l.rating}</td>
-                    <td>{l.reviews}</td>
-                    <td>{l.category}</td>
-                    <td>{l.city}</td>
-                    <td>USA</td>
-                  </tr>
+                {MOCK_LEADS.map((l, i) => (
+                  <Fragment key={l.name}>
+                    <tr>
+                      <td className="b">{l.name}</td>
+                      <td>{l.email}</td>
+                      <td className="rt">★ {l.rating}</td>
+                      <td className="acts">
+                        <span className="pill accent">
+                          <Sparkles size={12} strokeWidth={2} /> Ideas
+                        </span>
+                        <span className="pill">
+                          <Send size={12} strokeWidth={2} /> Email
+                        </span>
+                      </td>
+                    </tr>
+                    {i === 0 && (
+                      <tr className="ai-row">
+                        <td colSpan={4}>
+                          <div className="ai-card">
+                            <div className="ai-head">
+                              <Sparkles size={13} strokeWidth={2} /> Pitch ideas for {l.name}
+                            </div>
+                            <ul>
+                              <li>New website — dated site, no online booking</li>
+                              <li>Local SEO — strong reviews but low search visibility</li>
+                              <li>Review automation — automate requests across {l.reviews} reviews</li>
+                            </ul>
+                            <span className="ai-send">
+                              <Send size={12} strokeWidth={2} /> Email this lead
+                            </span>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </Fragment>
                 ))}
               </tbody>
             </table>

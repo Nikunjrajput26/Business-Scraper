@@ -1,7 +1,8 @@
 import { Fragment, useMemo, useState } from "react";
-import { ArrowUp, ArrowDown, ArrowUpDown, Search, Sparkles, Mail, X } from "lucide-react";
+import { ArrowUp, ArrowDown, ArrowUpDown, Search, Sparkles, Mail } from "lucide-react";
 import { api } from "../api";
 import { getToken } from "../api";
+import LeadComposer from "./LeadComposer";
 
 const COLUMNS = [
   { key: "business_name", label: "Business", className: "col-business" },
@@ -18,7 +19,18 @@ export default function LeadsTable({ run, leads }) {
   const [sort, setSort] = useState({ key: null, dir: "asc" });
   const [pitches, setPitches] = useState({}); // leadId -> { loading, text, error }
   const [openPitch, setOpenPitch] = useState(null);
-  const [composer, setComposer] = useState(null); // { lead, subject, body, busy, msg, sent }
+  const [composer, setComposer] = useState(null); // lead being emailed
+  const [statuses, setStatuses] = useState({}); // leadId -> status override
+
+  const changeStatus = async (lead, value) => {
+    const prev = statuses[lead.id] ?? lead.status ?? "new";
+    setStatuses((s) => ({ ...s, [lead.id]: value }));
+    try {
+      await api.setLeadStatus(lead.id, value);
+    } catch {
+      setStatuses((s) => ({ ...s, [lead.id]: prev })); // revert on failure
+    }
+  };
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -98,30 +110,6 @@ export default function LeadsTable({ run, leads }) {
     }
   };
 
-  const openComposer = (lead) => {
-    setComposer({
-      lead,
-      subject: `Quick idea for ${lead.business_name}`,
-      body: "",
-      busy: false,
-      msg: "",
-      sent: false,
-    });
-  };
-
-  const sendEmail = async () => {
-    setComposer((c) => ({ ...c, busy: true, msg: "" }));
-    try {
-      const res = await api.emailLead(composer.lead.id, {
-        subject: composer.subject,
-        body: composer.body,
-      });
-      setComposer((c) => ({ ...c, busy: false, sent: true, msg: `Sent to ${res.sent_to}` }));
-    } catch (err) {
-      setComposer((c) => ({ ...c, busy: false, msg: err.message }));
-    }
-  };
-
   return (
     <div>
       <div className="leads-header">
@@ -192,24 +180,38 @@ export default function LeadsTable({ run, leads }) {
                       )}
                     </td>
                     <td className="col-actions">
-                      <button
-                        className="row-action"
-                        onClick={() => (isOpen ? setOpenPitch(null) : handlePitch(lead))}
-                        title="AI service suggestions"
-                      >
-                        <Sparkles size={13} strokeWidth={2} />
-                        Ideas
-                      </button>
-                      {lead.email && (
+                      <div className="row-actions">
+                        <select
+                          className={`status-select status-${statuses[lead.id] ?? lead.status ?? "new"}`}
+                          value={statuses[lead.id] ?? lead.status ?? "new"}
+                          onChange={(e) => changeStatus(lead, e.target.value)}
+                          title="Lead status"
+                        >
+                          <option value="new">New</option>
+                          <option value="contacted">Contacted</option>
+                          <option value="replied">Replied</option>
+                          <option value="won">Won</option>
+                          <option value="lost">Lost</option>
+                        </select>
                         <button
                           className="row-action"
-                          onClick={() => openComposer(lead)}
-                          title="Email this lead"
+                          onClick={() => (isOpen ? setOpenPitch(null) : handlePitch(lead))}
+                          title="AI service suggestions"
                         >
-                          <Mail size={13} strokeWidth={2} />
-                          Email
+                          <Sparkles size={13} strokeWidth={2} />
+                          Ideas
                         </button>
-                      )}
+                        {lead.email && (
+                          <button
+                            className="row-action"
+                            onClick={() => setComposer(lead)}
+                            title="Email this lead"
+                          >
+                            <Mail size={13} strokeWidth={2} />
+                            Email
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                   {isOpen && (
@@ -243,52 +245,7 @@ export default function LeadsTable({ run, leads }) {
       </div>
 
       {composer && (
-        <div className="composer-overlay" onClick={() => setComposer(null)}>
-          <div className="composer" onClick={(e) => e.stopPropagation()}>
-            <div className="composer-head">
-              <div>
-                <h3>Email {composer.lead.business_name}</h3>
-                <p className="stat-sub">To: {(composer.lead.email || "").split(";")[0]}</p>
-              </div>
-              <button className="icon-btn" onClick={() => setComposer(null)}>
-                <X size={16} strokeWidth={2} />
-              </button>
-            </div>
-            <label>
-              Subject
-              <input
-                type="text"
-                value={composer.subject}
-                onChange={(e) => setComposer({ ...composer, subject: e.target.value })}
-              />
-            </label>
-            <label>
-              Message
-              <textarea
-                rows={8}
-                value={composer.body}
-                onChange={(e) => setComposer({ ...composer, body: e.target.value })}
-                placeholder="Write your outreach message…"
-              />
-            </label>
-            {composer.msg && (
-              <div className={composer.sent ? "stat-sub" : "error"} style={{ marginBottom: 10 }}>
-                {composer.msg}
-              </div>
-            )}
-            <div style={{ display: "flex", gap: 10 }}>
-              <button
-                onClick={sendEmail}
-                disabled={composer.busy || composer.sent || !composer.subject.trim() || !composer.body.trim()}
-              >
-                {composer.busy ? "Sending…" : composer.sent ? "Sent" : "Send email"}
-              </button>
-              <button className="btn-secondary" onClick={() => setComposer(null)}>
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
+        <LeadComposer lead={composer} onClose={() => setComposer(null)} />
       )}
     </div>
   );
