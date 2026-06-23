@@ -12,15 +12,20 @@ from app.auth import create_access_token, get_current_user, hash_password, verif
 from app.db import get_db, init_db
 from app.jobs import execute_run
 from app.models import Lead, Run, User
+from app.ai import generate_pitch
+from app.email_send import send_email
 from app.plans import PLANS, list_addons, list_plans, plan_quota
 from app.schemas import (
+    AnthropicKeyRequest,
     ApiKeyRequest,
     LeadResponse,
     LoginRequest,
     PlanSelectRequest,
     RunCreateRequest,
     RunResponse,
+    SendEmailRequest,
     SignupRequest,
+    SmtpSettingsRequest,
     TokenResponse,
     UserResponse,
 )
@@ -132,6 +137,60 @@ def delete_api_key(
     return current_user
 
 
+@app.put("/me/anthropic-key", response_model=UserResponse)
+def save_anthropic_key(
+    payload: AnthropicKeyRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> User:
+    current_user.anthropic_api_key = payload.api_key.strip()
+    db.commit()
+    db.refresh(current_user)
+    return current_user
+
+
+@app.delete("/me/anthropic-key", response_model=UserResponse)
+def delete_anthropic_key(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> User:
+    current_user.anthropic_api_key = None
+    db.commit()
+    db.refresh(current_user)
+    return current_user
+
+
+@app.put("/me/smtp", response_model=UserResponse)
+def save_smtp(
+    payload: SmtpSettingsRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> User:
+    current_user.smtp_host = payload.smtp_host.strip()
+    current_user.smtp_port = payload.smtp_port
+    current_user.smtp_username = payload.smtp_username.strip()
+    current_user.smtp_password = payload.smtp_password
+    current_user.smtp_from_name = (payload.smtp_from_name or "").strip()
+    db.commit()
+    db.refresh(current_user)
+    return current_user
+
+
+@app.delete("/me/smtp", response_model=UserResponse)
+def delete_smtp(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> User:
+    current_user.smtp_host = None
+    current_user.smtp_port = None
+    current_user.smtp_username = None
+    current_user.smtp_password = None
+    current_user.smtp_from_name = None
+    db.commit()
+    db.refresh(current_user)
+    return current_user
+
+
 @app.post("/runs", response_model=RunResponse)
 def create_run(
     payload: RunCreateRequest,
@@ -236,6 +295,50 @@ def get_run_leads(
 ) -> list[Lead]:
     run = _get_owned_run(run_id, db, current_user)
     return db.query(Lead).filter(Lead.run_id == run.id).all()
+
+
+def _get_owned_lead(lead_id: str, db: Session, current_user: User) -> Lead:
+    lead = db.get(Lead, lead_id)
+    if not lead:
+        raise HTTPException(status_code=404, detail="Lead not found.")
+    _get_owned_run(lead.run_id, db, current_user)  # enforces ownership
+    return lead
+
+
+@app.post("/leads/{lead_id}/pitch", response_model=LeadResponse)
+def generate_lead_pitch(
+    lead_id: str, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)
+) -> Lead:
+    lead = _get_owned_lead(lead_id, db, current_user)
+    if not current_user.has_ai_key:
+        raise HTTPException(
+            status_code=400,
+            detail="Add your Anthropic API key in Settings to generate AI suggestions.",
+        )
+    try:
+        lead.ai_pitch = generate_pitch(lead, current_user.anthropic_api_key)
+    except Exception as exc:  # noqa: BLE001 - surface AI failures to the user
+        raise HTTPException(status_code=502, detail=str(exc))
+    db.commit()
+    db.refresh(lead)
+    return lead
+
+
+@app.post("/leads/{lead_id}/email")
+def email_lead(
+    lead_id: str,
+    payload: SendEmailRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> dict:
+    lead = _get_owned_lead(lead_id, db, current_user)
+    # The scraped email column can hold several addresses ("a@x.com; b@y.com").
+    to_address = (lead.email or "").split(";")[0].strip()
+    try:
+        send_email(current_user, to_address, payload.subject, payload.body)
+    except RuntimeError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    return {"sent_to": to_address}
 
 
 @app.get("/runs/{run_id}/export.csv")

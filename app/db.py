@@ -42,16 +42,28 @@ def _run_lightweight_migrations() -> None:
     must be added by hand. Works for both SQLite (local) and Postgres (Neon).
     """
     inspector = inspect(engine)
-    existing_user_columns = {col["name"] for col in inspector.get_columns("users")}
-    # column name -> SQL type for the ADD COLUMN statement
-    expected_user_columns = {
-        "google_api_key": "TEXT",
-        "full_name": "VARCHAR(255)",
-        "company_name": "VARCHAR(255)",
-        "phone": "VARCHAR(50)",
-    }
-    missing = {name: typ for name, typ in expected_user_columns.items() if name not in existing_user_columns}
-    if missing:
-        with engine.begin() as conn:
-            for name, typ in missing.items():
-                conn.execute(text(f"ALTER TABLE users ADD COLUMN {name} {typ}"))
+
+    def _add_missing(table: str, expected: dict[str, str]) -> None:
+        existing = {col["name"] for col in inspector.get_columns(table)}
+        missing = {name: typ for name, typ in expected.items() if name not in existing}
+        if missing:
+            with engine.begin() as conn:
+                for name, typ in missing.items():
+                    conn.execute(text(f"ALTER TABLE {table} ADD COLUMN {name} {typ}"))
+
+    _add_missing(
+        "users",
+        {
+            "google_api_key": "TEXT",
+            "anthropic_api_key": "TEXT",
+            "full_name": "VARCHAR(255)",
+            "company_name": "VARCHAR(255)",
+            "phone": "VARCHAR(50)",
+            "smtp_host": "VARCHAR(255)",
+            "smtp_port": "INTEGER",
+            "smtp_username": "VARCHAR(255)",
+            "smtp_password": "TEXT",
+            "smtp_from_name": "VARCHAR(255)",
+        },
+    )
+    _add_missing("leads", {"ai_pitch": "TEXT"})

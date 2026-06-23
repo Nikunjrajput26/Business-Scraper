@@ -39,6 +39,13 @@ class UserResponse(BaseModel):
     monthly_lead_quota: int
     leads_used_this_period: int
     has_own_api_key: bool = False
+    has_ai_key: bool = False
+    has_smtp: bool = False
+    # Non-secret SMTP fields, so the form can show what's saved.
+    smtp_host: Optional[str] = None
+    smtp_port: Optional[int] = None
+    smtp_username: Optional[str] = None
+    smtp_from_name: Optional[str] = None
 
     class Config:
         from_attributes = True
@@ -50,6 +57,23 @@ class PlanSelectRequest(BaseModel):
 
 class ApiKeyRequest(BaseModel):
     api_key: str = Field(min_length=10, description="Your Google Places API key")
+
+
+class AnthropicKeyRequest(BaseModel):
+    api_key: str = Field(min_length=10, description="Your Anthropic API key")
+
+
+class SmtpSettingsRequest(BaseModel):
+    smtp_host: str = Field(min_length=1, max_length=255)
+    smtp_port: int = Field(default=587, ge=1, le=65535)
+    smtp_username: str = Field(min_length=1, max_length=255)
+    smtp_password: str = Field(min_length=1)
+    smtp_from_name: Optional[str] = Field(default="", max_length=255)
+
+
+class SendEmailRequest(BaseModel):
+    subject: str = Field(min_length=1, max_length=255)
+    body: str = Field(min_length=1)
 
 
 class RunCreateRequest(BaseModel):
@@ -74,6 +98,7 @@ class LeadResponse(BaseModel):
     city: str
     country: str
     email: str
+    ai_pitch: Optional[str] = None
 
     class Config:
         from_attributes = True

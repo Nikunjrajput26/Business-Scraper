@@ -30,6 +30,14 @@ class User(Base):
     # Bring-your-own Google Places API key. When set, scrapes run on this
     # key and the monthly lead quota is no longer enforced (Enterprise).
     google_api_key: Mapped[str] = mapped_column(Text, nullable=True)
+    # Bring-your-own Anthropic key, used for AI lead suggestions.
+    anthropic_api_key: Mapped[str] = mapped_column(Text, nullable=True)
+    # Per-user outbound email (SMTP / Gmail). Used to send outreach to leads.
+    smtp_host: Mapped[str] = mapped_column(String(255), nullable=True)
+    smtp_port: Mapped[int] = mapped_column(Integer, nullable=True)
+    smtp_username: Mapped[str] = mapped_column(String(255), nullable=True)
+    smtp_password: Mapped[str] = mapped_column(Text, nullable=True)
+    smtp_from_name: Mapped[str] = mapped_column(String(255), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=_now)
 
     runs: Mapped[list["Run"]] = relationship(back_populates="user", cascade="all, delete-orphan")
@@ -37,6 +45,14 @@ class User(Base):
     @property
     def has_own_api_key(self) -> bool:
         return bool(self.google_api_key and self.google_api_key.strip())
+
+    @property
+    def has_smtp(self) -> bool:
+        return bool(self.smtp_host and self.smtp_username and self.smtp_password)
+
+    @property
+    def has_ai_key(self) -> bool:
+        return bool(self.anthropic_api_key and self.anthropic_api_key.strip())
 
 
 class Run(Base):
@@ -71,5 +87,7 @@ class Lead(Base):
     city: Mapped[str] = mapped_column(String(255), default="")
     country: Mapped[str] = mapped_column(String(255), default="")
     email: Mapped[str] = mapped_column(Text, default="")
+    # AI-generated "what services could you sell this business" suggestions.
+    ai_pitch: Mapped[str] = mapped_column(Text, nullable=True)
 
     run: Mapped["Run"] = relationship(back_populates="leads")

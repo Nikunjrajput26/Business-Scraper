@@ -18,7 +18,71 @@ export default function Dashboard() {
   const [apiKeyInput, setApiKeyInput] = useState("");
   const [keyBusy, setKeyBusy] = useState(false);
   const [keyMsg, setKeyMsg] = useState("");
+  const [aiKeyInput, setAiKeyInput] = useState("");
+  const [aiBusy, setAiBusy] = useState(false);
+  const [aiMsg, setAiMsg] = useState("");
+  const [smtp, setSmtp] = useState({ smtp_host: "", smtp_port: 587, smtp_username: "", smtp_password: "", smtp_from_name: "" });
+  const [smtpBusy, setSmtpBusy] = useState(false);
+  const [smtpMsg, setSmtpMsg] = useState("");
   const pollRef = useRef(null);
+
+  const handleSaveAiKey = async () => {
+    setAiBusy(true);
+    setAiMsg("");
+    try {
+      await api.saveAnthropicKey(aiKeyInput.trim());
+      setAiKeyInput("");
+      setAiMsg("Anthropic key saved — AI suggestions are now enabled.");
+      await refreshUser();
+    } catch (err) {
+      setAiMsg(err.message);
+    } finally {
+      setAiBusy(false);
+    }
+  };
+
+  const handleRemoveAiKey = async () => {
+    setAiBusy(true);
+    setAiMsg("");
+    try {
+      await api.deleteAnthropicKey();
+      setAiMsg("Anthropic key removed.");
+      await refreshUser();
+    } catch (err) {
+      setAiMsg(err.message);
+    } finally {
+      setAiBusy(false);
+    }
+  };
+
+  const handleSaveSmtp = async () => {
+    setSmtpBusy(true);
+    setSmtpMsg("");
+    try {
+      await api.saveSmtp({ ...smtp, smtp_port: Number(smtp.smtp_port) || 587 });
+      setSmtp((s) => ({ ...s, smtp_password: "" }));
+      setSmtpMsg("Email settings saved — you can now send outreach to leads.");
+      await refreshUser();
+    } catch (err) {
+      setSmtpMsg(err.message);
+    } finally {
+      setSmtpBusy(false);
+    }
+  };
+
+  const handleRemoveSmtp = async () => {
+    setSmtpBusy(true);
+    setSmtpMsg("");
+    try {
+      await api.deleteSmtp();
+      setSmtpMsg("Email settings removed.");
+      await refreshUser();
+    } catch (err) {
+      setSmtpMsg(err.message);
+    } finally {
+      setSmtpBusy(false);
+    }
+  };
 
   const handleSelectPlan = async (planId) => {
     setBusyPlan(planId);
@@ -381,6 +445,144 @@ export default function Dashboard() {
                     {keyMsg}
                   </div>
                 )}
+              </div>
+            </div>
+          )}
+
+          {tab === "settings" && (
+            <div className="card" style={{ marginTop: 24 }}>
+              <div className="card-header">
+                <div>
+                  <h3>Anthropic API key</h3>
+                  <p>Add your own Anthropic key to generate AI service suggestions for each lead.</p>
+                </div>
+              </div>
+              <div className="card-body">
+                {user?.has_ai_key ? (
+                  <div>
+                    <div style={{ marginBottom: 14 }}>
+                      <span className="badge badge-completed">AI suggestions enabled</span>
+                    </div>
+                    <button className="btn-secondary" onClick={handleRemoveAiKey} disabled={aiBusy}>
+                      {aiBusy ? "Removing…" : "Remove key"}
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    <label style={{ maxWidth: 480 }}>
+                      API key
+                      <input
+                        type="password"
+                        value={aiKeyInput}
+                        onChange={(e) => setAiKeyInput(e.target.value)}
+                        placeholder="sk-ant-..."
+                        autoComplete="off"
+                      />
+                    </label>
+                    <button
+                      onClick={handleSaveAiKey}
+                      disabled={aiBusy || aiKeyInput.trim().length < 10}
+                      style={{ marginTop: 14 }}
+                    >
+                      {aiBusy ? "Saving…" : "Save key"}
+                    </button>
+                  </>
+                )}
+                {aiMsg && <div className="stat-sub" style={{ marginTop: 12 }}>{aiMsg}</div>}
+              </div>
+            </div>
+          )}
+
+          {tab === "settings" && (
+            <div className="card" style={{ marginTop: 24 }}>
+              <div className="card-header">
+                <div>
+                  <h3>Email (SMTP)</h3>
+                  <p>
+                    Connect your own email so you can send outreach to leads. For Gmail, use an
+                    App Password (Google Account → Security → App passwords), host{" "}
+                    <code>smtp.gmail.com</code>, port 587.
+                  </p>
+                </div>
+              </div>
+              <div className="card-body">
+                {user?.has_smtp && (
+                  <div style={{ marginBottom: 16 }}>
+                    <span className="badge badge-completed">
+                      Email connected{user?.smtp_username ? ` · ${user.smtp_username}` : ""}
+                    </span>
+                  </div>
+                )}
+                <div className="row" style={{ gap: 16, flexWrap: "wrap" }}>
+                  <label style={{ flex: "1 1 220px" }}>
+                    SMTP host
+                    <input
+                      type="text"
+                      value={smtp.smtp_host}
+                      onChange={(e) => setSmtp({ ...smtp, smtp_host: e.target.value })}
+                      placeholder="smtp.gmail.com"
+                    />
+                  </label>
+                  <label style={{ flex: "0 0 110px" }}>
+                    Port
+                    <input
+                      type="number"
+                      value={smtp.smtp_port}
+                      onChange={(e) => setSmtp({ ...smtp, smtp_port: e.target.value })}
+                      placeholder="587"
+                    />
+                  </label>
+                </div>
+                <div className="row" style={{ gap: 16, flexWrap: "wrap", marginTop: 14 }}>
+                  <label style={{ flex: "1 1 220px" }}>
+                    Email / username
+                    <input
+                      type="text"
+                      value={smtp.smtp_username}
+                      onChange={(e) => setSmtp({ ...smtp, smtp_username: e.target.value })}
+                      placeholder="you@gmail.com"
+                      autoComplete="off"
+                    />
+                  </label>
+                  <label style={{ flex: "1 1 220px" }}>
+                    From name
+                    <input
+                      type="text"
+                      value={smtp.smtp_from_name}
+                      onChange={(e) => setSmtp({ ...smtp, smtp_from_name: e.target.value })}
+                      placeholder="Your Company"
+                    />
+                  </label>
+                </div>
+                <label style={{ maxWidth: 480, marginTop: 14 }}>
+                  Password / App password
+                  <input
+                    type="password"
+                    value={smtp.smtp_password}
+                    onChange={(e) => setSmtp({ ...smtp, smtp_password: e.target.value })}
+                    placeholder={user?.has_smtp ? "•••••••• (saved)" : "App password"}
+                    autoComplete="new-password"
+                  />
+                </label>
+                <div style={{ marginTop: 16, display: "flex", gap: 10 }}>
+                  <button
+                    onClick={handleSaveSmtp}
+                    disabled={
+                      smtpBusy ||
+                      !smtp.smtp_host.trim() ||
+                      !smtp.smtp_username.trim() ||
+                      !smtp.smtp_password.trim()
+                    }
+                  >
+                    {smtpBusy ? "Saving…" : "Save email settings"}
+                  </button>
+                  {user?.has_smtp && (
+                    <button className="btn-secondary" onClick={handleRemoveSmtp} disabled={smtpBusy}>
+                      Disconnect
+                    </button>
+                  )}
+                </div>
+                {smtpMsg && <div className="stat-sub" style={{ marginTop: 12 }}>{smtpMsg}</div>}
               </div>
             </div>
           )}
