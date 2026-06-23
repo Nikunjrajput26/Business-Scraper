@@ -1,8 +1,32 @@
 import { Link } from "react-router-dom";
-import { Search, Mail, Download, KeyRound, Zap, ShieldCheck, Check } from "lucide-react";
+import { Search, Mail, Download, KeyRound, Zap, ShieldCheck, Check, FileSpreadsheet } from "lucide-react";
 import MarketingNav from "./MarketingNav";
 import PlanCards from "./PlanCards";
 import AddonBanner from "./AddonBanner";
+
+// Mirrors the fields the scraper actually returns (see LeadRecord).
+const MOCK_LEADS = [
+  {
+    name: "Sunrise Dental Care", phone: "(512) 555-0142", email: "hello@sunrisedental.com",
+    website: "sunrisedental.com", rating: "4.8", reviews: "212", category: "Dentist", city: "Austin",
+  },
+  {
+    name: "BrightPath Plumbing", phone: "(512) 555-0198", email: "info@brightpathplumbing.com",
+    website: "brightpathplumbing.com", rating: "4.6", reviews: "143", category: "Plumber", city: "Austin",
+  },
+  {
+    name: "Vertex Fitness Studio", phone: "(512) 555-0177", email: "team@vertexfit.com",
+    website: "vertexfit.com", rating: "4.9", reviews: "389", category: "Gym", city: "Austin",
+  },
+  {
+    name: "Maple Leaf Bakery", phone: "(512) 555-0125", email: "orders@mapleleafbakery.co",
+    website: "mapleleafbakery.co", rating: "4.7", reviews: "98", category: "Bakery", city: "Austin",
+  },
+  {
+    name: "Cooper & Co Law", phone: "(512) 555-0163", email: "contact@cooperlaw.com",
+    website: "cooperlaw.com", rating: "4.5", reviews: "64", category: "Law firm", city: "Austin",
+  },
+];
 
 const FEATURES = [
   {
@@ -42,86 +66,100 @@ export default function Landing() {
     <div className="mkt">
       <MarketingNav />
 
-      {/* Hero */}
-      <section className="mkt-hero">
-        <span className="mkt-eyebrow">
-          <span className="dot" />
-          Lead generation, on autopilot
-        </span>
-        <h1>
-          Find your next customer <span className="grad-text">before your competitors do.</span>
-        </h1>
-        <p className="sub">
-          Search Google Places by keyword and location, enrich every business with verified emails
-          and phone numbers, and export ready-to-use lead lists in minutes — not days.
-        </p>
-        <div className="mkt-hero-actions">
-          <Link to="/app" className="mkt-btn lg">
-            Start free — 200 leads
-          </Link>
-          <Link to="/pricing" className="mkt-btn ghost lg">
-            See pricing
-          </Link>
-        </div>
-        <div className="mkt-hero-note">
-          <Check size={15} strokeWidth={3} />
-          No credit card required · Cancel anytime
+      {/* Hero — centered copy, full-width spreadsheet below */}
+      <section className="mkt-hero home">
+        <div className="mkt-hero-copy">
+          <span className="mkt-eyebrow">
+            <span className="dot" />
+            Lead generation, on autopilot
+          </span>
+          <h1>
+            Type a city.<br />
+            Get a <span className="grad-text">qualified lead list.</span>
+          </h1>
+          <p className="sub">
+            Search Google Places by keyword and location, enrich every business with verified
+            emails and phone numbers, then export a ready-to-call CSV — in minutes.
+          </p>
+
+          <div className="mkt-search">
+            <Search size={18} strokeWidth={2} className="mkt-search-ic" />
+            <input value="dentists in Austin" readOnly aria-label="Example search" />
+            <Link to="/app" className="mkt-btn">
+              Generate leads
+            </Link>
+          </div>
+
+          <div className="mkt-hero-note">
+            <Check size={15} strokeWidth={3} />
+            No credit card required · 200 free leads to start
+          </div>
         </div>
 
-        {/* Product mockup */}
-        <div className="mkt-mockup">
-          <div className="mkt-mockup-bar">
-            <i />
-            <i />
-            <i />
-            <span className="url">app.leadscraper.io/dashboard</span>
-          </div>
-          <div className="mkt-mockup-body">
-            <div className="mkt-mock-side">
-              <div className="row on" />
-              <div className="row" />
-              <div className="row" />
-              <div className="row" />
+        {/* A spreadsheet of everything we scrape */}
+        <div className="mkt-hero-visual">
+          <div className="mkt-sheet">
+            <div className="mkt-sheet-bar">
+              <span className="fname">
+                <FileSpreadsheet size={15} strokeWidth={2} />
+                leads_dentists_austin.csv
+              </span>
+              <span className="rows">237 rows · 10 fields</span>
             </div>
-            <div className="mkt-mock-main">
-              <div className="mkt-mock-stats">
-                <div className="card">
-                  <div className="k">Leads collected</div>
-                  <div className="v">4,820</div>
-                </div>
-                <div className="card">
-                  <div className="k">Searches</div>
-                  <div className="v">37</div>
-                </div>
-                <div className="card">
-                  <div className="k">With email</div>
-                  <div className="v">71%</div>
-                </div>
-              </div>
-              <div className="mkt-mock-table">
-                {[0, 1, 2, 3, 4].map((i) => (
-                  <div className="tr" key={i}>
-                    <div className="cell" style={{ width: i % 2 ? "78%" : "62%" }} />
-                    <div className="cell" />
-                    <div className={`cell${i % 2 ? " g" : ""}`} />
-                    <div className="cell" style={{ width: "40%" }} />
-                  </div>
+            <table className="mkt-sheet-table">
+              <thead>
+                <tr>
+                  <th>Business</th>
+                  <th>Phone</th>
+                  <th>Email</th>
+                  <th>Website</th>
+                  <th>Rating</th>
+                  <th>Reviews</th>
+                  <th>Category</th>
+                  <th>City</th>
+                  <th>Country</th>
+                </tr>
+              </thead>
+              <tbody>
+                {MOCK_LEADS.map((l) => (
+                  <tr key={l.name}>
+                    <td className="b">{l.name}</td>
+                    <td>{l.phone}</td>
+                    <td>{l.email}</td>
+                    <td>{l.website}</td>
+                    <td className="rt">★ {l.rating}</td>
+                    <td>{l.reviews}</td>
+                    <td>{l.category}</td>
+                    <td>{l.city}</td>
+                    <td>USA</td>
+                  </tr>
                 ))}
-              </div>
-            </div>
+              </tbody>
+            </table>
+          </div>
+
+          <div className="mkt-sheet-note">
+            <span>
+              <Check size={14} strokeWidth={2.5} /> Emails &amp; phones verified
+            </span>
+            <span>
+              <FileSpreadsheet size={14} strokeWidth={2} /> 10 fields per lead
+            </span>
+            <span>
+              <Download size={14} strokeWidth={2} /> CSV &amp; Sheets export
+            </span>
           </div>
         </div>
       </section>
 
-      {/* Logos */}
+      {/* Honest capability strip (no fabricated logos) */}
       <div className="mkt-logos">
-        <p>Trusted by lean teams everywhere</p>
+        <p>What every search gives you</p>
         <div className="mkt-logos-row">
-          <span>Northwind</span>
-          <span>Acme Co</span>
-          <span>Brightside</span>
-          <span>Vertex</span>
-          <span>Loop</span>
+          <span>Official Google Places data</span>
+          <span>Verified emails &amp; phones</span>
+          <span>De-duplicated lists</span>
+          <span>One-click CSV export</span>
         </div>
       </div>
 
@@ -146,7 +184,7 @@ export default function Landing() {
       </section>
 
       {/* How it works */}
-      <section className="mkt-how">
+      <section className="mkt-how" id="how">
         <div className="mkt-section">
           <div className="mkt-section-head">
             <div className="mkt-tag">How it works</div>
@@ -172,41 +210,24 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* Stats band */}
+      {/* Capability stats (true product facts, not traction claims) */}
       <section className="mkt-band">
         <div className="mkt-band-inner">
           <div>
-            <div className="v">10k+</div>
-            <div className="k">Leads scraped</div>
-          </div>
-          <div>
             <div className="v">200+</div>
-            <div className="k">Cities covered</div>
+            <div className="k">Countries supported</div>
           </div>
           <div>
-            <div className="v">98%</div>
-            <div className="k">Data accuracy</div>
+            <div className="v">6,000</div>
+            <div className="k">Leads / mo on Growth</div>
+          </div>
+          <div>
+            <div className="v">10</div>
+            <div className="k">Data fields per lead</div>
           </div>
           <div>
             <div className="v">&lt;2 min</div>
-            <div className="k">To first export</div>
-          </div>
-        </div>
-      </section>
-
-      {/* Testimonial */}
-      <section className="mkt-section">
-        <div className="mkt-quote">
-          <blockquote>
-            “We replaced a $400/mo data tool with Lead Scraper and pulled 3,000 qualified leads in
-            our first week. The CSV exports drop straight into our CRM.”
-          </blockquote>
-          <div className="who">
-            <span className="ava">JM</span>
-            <div>
-              <div className="n">Jordan Mehta</div>
-              <div className="r">Founder, Brightside Agency</div>
-            </div>
+            <div className="k">To your first export</div>
           </div>
         </div>
       </section>
