@@ -1,6 +1,7 @@
 import csv
 import io
 import os
+from datetime import datetime, timedelta
 
 from fastapi import BackgroundTasks, Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -176,8 +177,39 @@ def create_run(
     return run
 
 
+# A scrape should never legitimately run this long; anything older that's
+# still "running"/"pending" means the worker died (e.g. the host recycled the
+# process mid-scrape) and the run is a zombie.
+STUCK_RUN_TIMEOUT = timedelta(minutes=20)
+
+
+def _fail_stuck_runs(db: Session, user_id: str) -> None:
+    """Lazily mark zombie runs as failed whenever the dashboard loads."""
+    cutoff = datetime.utcnow() - STUCK_RUN_TIMEOUT
+    stuck = (
+        db.query(Run)
+        .filter(
+            Run.user_id == user_id,
+            Run.status.in_(["running", "pending"]),
+            Run.created_at < cutoff,
+        )
+        .all()
+    )
+    if not stuck:
+        return
+    for run in stuck:
+        run.status = "failed"
+        run.error_message = (
+            "Run timed out — the server may have restarted mid-scrape. "
+            "Please try again, ideally with fewer search terms."
+        )
+        run.finished_at = datetime.utcnow()
+    db.commit()
+
+
 @app.get("/runs", response_model=list[RunResponse])
 def list_runs(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)) -> list[Run]:
+    _fail_stuck_runs(db, current_user.id)
     return (
         db.query(Run)
         .filter(Run.user_id == current_user.id)

@@ -332,7 +332,7 @@ def scrape_emails_for_website(session: requests.Session, website_url: str) -> st
             return None
         visited.add(url)
         try:
-            resp = session.get(url, timeout=20, headers=headers)
+            resp = session.get(url, timeout=8, headers=headers)
             if resp.status_code >= 400:
                 return None
             return resp.text
@@ -346,7 +346,7 @@ def scrape_emails_for_website(session: requests.Session, website_url: str) -> st
         found_emails.update(_extract_mailto_emails(homepage_html))
         discovered_links = _discover_contact_links(website_url, homepage_html)
 
-    pages_to_try = (discovered_links + [urljoin(base, path) for path in CONTACT_PATH_GUESSES])[:8]
+    pages_to_try = (discovered_links + [urljoin(base, path) for path in CONTACT_PATH_GUESSES])[:4]
 
     for url in pages_to_try:
         html = fetch(url)

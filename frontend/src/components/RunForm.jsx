@@ -5,7 +5,7 @@ export default function RunForm({ onCreated }) {
   const [prompt, setPrompt] = useState("");
   const [location, setLocation] = useState("");
   const [terms, setTerms] = useState("");
-  const [maxRecords, setMaxRecords] = useState(100);
+  const [maxRecords, setMaxRecords] = useState(60);
   const [includeEmail, setIncludeEmail] = useState(true);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
@@ -25,7 +25,7 @@ export default function RunForm({ onCreated }) {
         search_terms: searchTerms,
         location,
         include_email_scrape: includeEmail,
-        max_records: Number(maxRecords),
+        max_records: Math.min(60, Math.max(1, Number(maxRecords) || 60)),
       });
       setPrompt("");
       setLocation("");
@@ -74,10 +74,11 @@ export default function RunForm({ onCreated }) {
           <input
             type="number"
             min={1}
-            max={5000}
+            max={60}
             value={maxRecords}
             onChange={(e) => setMaxRecords(e.target.value)}
           />
+          <span className="field-hint">Up to 60 per search</span>
         </label>
         <label className="checkbox-label" style={{ flex: 1 }}>
           <input type="checkbox" checked={includeEmail} onChange={(e) => setIncludeEmail(e.target.checked)} />

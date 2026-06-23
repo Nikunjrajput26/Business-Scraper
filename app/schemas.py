@@ -57,7 +57,9 @@ class RunCreateRequest(BaseModel):
     search_terms: List[str] = Field(default_factory=list)
     location: str = Field(default="")
     include_email_scrape: bool = True
-    max_records: int = Field(default=200, ge=1, le=5000)
+    # Google Places Text Search returns at most ~60 results per term
+    # (3 pages × 20), so anything above 60 is misleading.
+    max_records: int = Field(default=60, ge=1, le=60)
 
 
 class LeadResponse(BaseModel):
