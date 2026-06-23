@@ -11,7 +11,7 @@ from app.auth import create_access_token, get_current_user, hash_password, verif
 from app.db import get_db, init_db
 from app.jobs import execute_run
 from app.models import Lead, Run, User
-from app.plans import PLANS, list_plans, plan_quota
+from app.plans import PLANS, list_addons, list_plans, plan_quota
 from app.schemas import (
     ApiKeyRequest,
     LeadResponse,
@@ -77,6 +77,12 @@ def me(current_user: User = Depends(get_current_user)) -> User:
 def get_plans() -> list[dict]:
     """Public pricing tiers, consumed by the marketing site and billing UI."""
     return list_plans()
+
+
+@app.get("/addons")
+def get_addons() -> list[dict]:
+    """Public one-time add-ons (e.g. bring-your-own-API-key)."""
+    return list_addons()
 
 
 @app.post("/me/plan", response_model=UserResponse)

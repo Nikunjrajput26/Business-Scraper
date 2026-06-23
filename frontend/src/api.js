@@ -37,6 +37,7 @@ export const api = {
   login: (email, password) => request("/auth/login", { method: "POST", body: { email, password }, auth: false }),
   me: () => request("/me"),
   getPlans: () => request("/plans", { auth: false }),
+  getAddons: () => request("/addons", { auth: false }),
   selectPlan: (plan) => request("/me/plan", { method: "POST", body: { plan } }),
   saveApiKey: (apiKey) => request("/me/api-key", { method: "PUT", body: { api_key: apiKey } }),
   deleteApiKey: () => request("/me/api-key", { method: "DELETE" }),

@@ -6,6 +6,7 @@ import RunForm from "./RunForm";
 import RunsList from "./RunsList";
 import LeadsTable from "./LeadsTable";
 import PlanCards from "./marketing/PlanCards";
+import AddonBanner from "./marketing/AddonBanner";
 
 export default function Dashboard() {
   const { user, logout, refreshUser } = useAuth();
@@ -304,6 +305,9 @@ export default function Dashboard() {
                     Switching takes effect immediately. No payment is collected in this demo.
                   </p>
                   <PlanCards currentPlan={user?.plan} onSelect={handleSelectPlan} busyPlan={busyPlan} />
+                  {!user?.has_own_api_key && (
+                    <AddonBanner onBuy={() => setTab("settings")} ctaLabel="Add your API key" />
+                  )}
                 </div>
               </div>
             </div>

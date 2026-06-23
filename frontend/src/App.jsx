@@ -5,6 +5,7 @@ import Dashboard from "./components/Dashboard";
 import Landing from "./components/marketing/Landing";
 import Pricing from "./components/marketing/Pricing";
 import "./App.css";
+import "./marketing.css";
 
 function AppGate() {
   const { user, loading } = useAuth();
