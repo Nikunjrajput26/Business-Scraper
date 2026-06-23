@@ -43,6 +43,15 @@ def _run_lightweight_migrations() -> None:
     """
     inspector = inspect(engine)
     existing_user_columns = {col["name"] for col in inspector.get_columns("users")}
-    if "google_api_key" not in existing_user_columns:
+    # column name -> SQL type for the ADD COLUMN statement
+    expected_user_columns = {
+        "google_api_key": "TEXT",
+        "full_name": "VARCHAR(255)",
+        "company_name": "VARCHAR(255)",
+        "phone": "VARCHAR(50)",
+    }
+    missing = {name: typ for name, typ in expected_user_columns.items() if name not in existing_user_columns}
+    if missing:
         with engine.begin() as conn:
-            conn.execute(text("ALTER TABLE users ADD COLUMN google_api_key TEXT"))
+            for name, typ in missing.items():
+                conn.execute(text(f"ALTER TABLE users ADD COLUMN {name} {typ}"))

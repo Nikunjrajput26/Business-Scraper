@@ -1,12 +1,22 @@
 from datetime import datetime
 from typing import List, Optional
 
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, model_validator
 
 
 class SignupRequest(BaseModel):
+    full_name: str = Field(min_length=1, max_length=255)
+    company_name: str = Field(min_length=1, max_length=255)
     email: EmailStr
+    phone: Optional[str] = Field(default="", max_length=50)
     password: str = Field(min_length=8)
+    confirm_password: str = Field(min_length=8)
+
+    @model_validator(mode="after")
+    def passwords_match(self) -> "SignupRequest":
+        if self.password != self.confirm_password:
+            raise ValueError("Passwords do not match.")
+        return self
 
 
 class LoginRequest(BaseModel):
@@ -22,6 +32,9 @@ class TokenResponse(BaseModel):
 class UserResponse(BaseModel):
     id: str
     email: EmailStr
+    full_name: Optional[str] = None
+    company_name: Optional[str] = None
+    phone: Optional[str] = None
     plan: str
     monthly_lead_quota: int
     leads_used_this_period: int

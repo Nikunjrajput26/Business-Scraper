@@ -1,4 +1,240 @@
 /* ============================================================
+   Auth screen — enterprise split layout
+   ============================================================ */
+
+.authx {
+  --grad: linear-gradient(155deg, #1b1640 0%, #3b2f8f 42%, #6d28d9 100%);
+  --line: #e8eaf0;
+  --ink: #0c0e16;
+  --ink-3: #6b7280;
+  display: grid;
+  grid-template-columns: 1.05fr 1fr;
+  min-height: 100vh;
+}
+
+/* Brand / value panel */
+.authx-aside {
+  position: relative;
+  color: #fff;
+  padding: 48px 52px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  overflow: hidden;
+  background:
+    radial-gradient(60% 50% at 85% 12%, rgba(255, 255, 255, 0.12), transparent 60%),
+    var(--grad);
+}
+
+.authx-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 700;
+  font-size: 17px;
+  letter-spacing: -0.01em;
+  color: #fff;
+  text-decoration: none;
+}
+
+.authx-aside .brand-mark {
+  background: rgba(255, 255, 255, 0.16);
+  color: #fff;
+}
+
+.authx-aside-body {
+  max-width: 420px;
+}
+
+.authx-aside-body h2 {
+  font-size: 33px;
+  font-weight: 800;
+  line-height: 1.15;
+  letter-spacing: -0.025em;
+  margin: 0 0 14px;
+}
+
+.authx-aside-body > p {
+  font-size: 15.5px;
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.78);
+  margin: 0 0 28px;
+}
+
+.authx-benefits {
+  list-style: none;
+  margin: 0 0 30px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 13px;
+}
+
+.authx-benefits li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 14.5px;
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.authx-benefits .tick {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.18);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.authx-quote {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 14px;
+  padding: 18px 20px;
+  font-size: 15px;
+  line-height: 1.5;
+  color: #fff;
+}
+
+.authx-quote .stars {
+  display: flex;
+  gap: 3px;
+  color: #fbbf24;
+  margin-bottom: 10px;
+}
+
+.authx-quote .who {
+  display: block;
+  margin-top: 10px;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.66);
+}
+
+.authx-aside-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12.5px;
+  color: rgba(255, 255, 255, 0.62);
+}
+
+.authx-aside-foot span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Form panel */
+.authx-main {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 32px;
+  background: #fff;
+}
+
+.authx-card {
+  width: 100%;
+  max-width: 460px;
+}
+
+.authx-brand.mobile {
+  display: none;
+  color: var(--ink);
+  margin-bottom: 26px;
+}
+
+.authx-brand.mobile .brand-mark {
+  background: var(--mkt-grad, linear-gradient(135deg, #4f46e5, #9333ea));
+  color: #fff;
+}
+
+.authx-card h1 {
+  margin: 0 0 6px;
+  font-size: 27px;
+  font-weight: 800;
+  letter-spacing: -0.025em;
+  color: var(--ink);
+}
+
+.authx-sub {
+  color: var(--ink-3);
+  margin: 0 0 28px;
+  font-size: 14.5px;
+}
+
+.authx-card form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.authx-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.authx-card label .opt {
+  color: var(--ink-3);
+  font-weight: 400;
+}
+
+.authx-submit {
+  margin-top: 6px;
+  width: 100%;
+  padding: 13px 16px;
+  font-size: 15px;
+  border-radius: 11px;
+  background: var(--mkt-grad, linear-gradient(135deg, #4f46e5, #9333ea));
+  border: none;
+  box-shadow: 0 8px 22px -8px rgba(99, 60, 235, 0.55);
+}
+
+.authx-submit:hover:not(:disabled) {
+  background: var(--mkt-grad, linear-gradient(135deg, #4f46e5, #9333ea));
+  filter: brightness(1.05);
+}
+
+.authx-switch {
+  margin-top: 24px;
+  text-align: center;
+  font-size: 13.5px;
+  color: var(--ink-3);
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+  align-items: center;
+}
+
+.authx-switch .link-btn {
+  color: #6d28d9;
+  font-weight: 600;
+  padding: 0;
+}
+
+@media (max-width: 900px) {
+  .authx {
+    grid-template-columns: 1fr;
+  }
+  .authx-aside {
+    display: none;
+  }
+  .authx-brand.mobile {
+    display: inline-flex;
+  }
+}
+
+@media (max-width: 480px) {
+  .authx-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ============================================================
    Marketing site — premium SaaS theme
    ============================================================ */
 

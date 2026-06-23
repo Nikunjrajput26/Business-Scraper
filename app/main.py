@@ -53,7 +53,13 @@ def signup(payload: SignupRequest, db: Session = Depends(get_db)) -> TokenRespon
     if existing:
         raise HTTPException(status_code=400, detail="Email already registered.")
 
-    user = User(email=payload.email, hashed_password=hash_password(payload.password))
+    user = User(
+        email=payload.email,
+        hashed_password=hash_password(payload.password),
+        full_name=payload.full_name.strip(),
+        company_name=payload.company_name.strip(),
+        phone=(payload.phone or "").strip(),
+    )
     db.add(user)
     db.commit()
     db.refresh(user)

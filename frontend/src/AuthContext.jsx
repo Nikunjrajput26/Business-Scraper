@@ -35,8 +35,8 @@ export function AuthProvider({ children }) {
     await loadUser();
   };
 
-  const signup = async (email, password) => {
-    const { access_token } = await api.signup(email, password);
+  const signup = async (payload) => {
+    const { access_token } = await api.signup(payload);
     localStorage.setItem("token", access_token);
     await loadUser();
   };
