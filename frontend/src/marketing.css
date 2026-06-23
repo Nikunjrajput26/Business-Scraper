@@ -2,8 +2,15 @@
    Auth screen — enterprise split layout
    ============================================================ */
 
+:root {
+  /* Refined enterprise indigo — single source for both app + marketing */
+  --brand-grad: linear-gradient(135deg, #5b54e8 0%, #4338ca 100%);
+  --brand-grad-aside: linear-gradient(160deg, #1e1b4b 0%, #312e81 48%, #4338ca 100%);
+  --brand-solid: #4f46e5;
+}
+
 .authx {
-  --grad: linear-gradient(155deg, #1b1640 0%, #3b2f8f 42%, #6d28d9 100%);
+  --grad: var(--brand-grad-aside);
   --line: #e8eaf0;
   --ink: #0c0e16;
   --ink-3: #6b7280;
@@ -148,7 +155,7 @@
 }
 
 .authx-brand.mobile .brand-mark {
-  background: var(--mkt-grad, linear-gradient(135deg, #4f46e5, #9333ea));
+  background: var(--brand-grad);
   color: #fff;
 }
 
@@ -178,9 +185,21 @@
   gap: 16px;
 }
 
+.authx-card label .authx-lbl {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
 .authx-card label .opt {
-  color: var(--ink-3);
-  font-weight: 400;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: #8a90a0;
+  background: #f1f2f6;
+  padding: 2px 7px;
+  border-radius: 999px;
 }
 
 .authx-submit {
@@ -189,13 +208,13 @@
   padding: 13px 16px;
   font-size: 15px;
   border-radius: 11px;
-  background: var(--mkt-grad, linear-gradient(135deg, #4f46e5, #9333ea));
+  background: var(--brand-grad);
   border: none;
   box-shadow: 0 8px 22px -8px rgba(99, 60, 235, 0.55);
 }
 
 .authx-submit:hover:not(:disabled) {
-  background: var(--mkt-grad, linear-gradient(135deg, #4f46e5, #9333ea));
+  background: var(--brand-grad);
   filter: brightness(1.05);
 }
 
@@ -211,7 +230,7 @@
 }
 
 .authx-switch .link-btn {
-  color: #6d28d9;
+  color: #4f46e5;
   font-weight: 600;
   padding: 0;
 }
@@ -243,8 +262,8 @@
   --mkt-ink-2: #3a4154;
   --mkt-ink-3: #6b7280;
   --mkt-line: #e8eaf0;
-  --mkt-grad: linear-gradient(135deg, #4f46e5 0%, #7c3aed 55%, #9333ea 100%);
-  --mkt-grad-soft: linear-gradient(135deg, #eef0ff 0%, #f5f0ff 100%);
+  --mkt-grad: var(--brand-grad);
+  --mkt-grad-soft: linear-gradient(135deg, #eef0ff 0%, #eef2ff 100%);
   color: var(--mkt-ink);
   background: #fff;
   overflow-x: hidden;
@@ -400,11 +419,9 @@
   font-size: 46px;
 }
 
+/* Subtle accent: refined indigo, not a loud gradient */
 .grad-text {
-  background: var(--mkt-grad);
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
+  color: #4f46e5;
 }
 
 .mkt-hero .sub {
@@ -611,7 +628,7 @@
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: #6d28d9;
+  color: #4f46e5;
   margin-bottom: 12px;
 }
 
@@ -903,7 +920,7 @@
   height: 54px;
   border-radius: 14px;
   background: var(--mkt-grad-soft);
-  color: #6d28d9;
+  color: #4f46e5;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -918,7 +935,7 @@
   font-weight: 700;
   letter-spacing: 0.05em;
   text-transform: uppercase;
-  color: #6d28d9;
+  color: #4f46e5;
   background: var(--mkt-grad-soft);
   padding: 4px 10px;
   border-radius: 999px;

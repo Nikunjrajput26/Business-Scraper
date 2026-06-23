@@ -163,7 +163,9 @@ export default function AuthForm() {
                     />
                   </label>
                   <label>
-                    Phone <span className="opt">(optional)</span>
+                    <span className="authx-lbl">
+                      Phone <span className="opt">optional</span>
+                    </span>
                     <input
                       type="tel"
                       value={form.phone}
