@@ -34,7 +34,7 @@ PLANS = {
     "starter": {
         "id": "starter",
         "name": "Starter",
-        "price_monthly": 20,
+        "price_monthly": 10,
         "monthly_lead_quota": 2000,
         "tagline": "For solo founders and freelancers shipping outreach.",
         "cta": "Choose Starter",
@@ -48,7 +48,7 @@ PLANS = {
     "growth": {
         "id": "growth",
         "name": "Growth",
-        "price_monthly": 45,
+        "price_monthly": 35,
         "monthly_lead_quota": 6000,
         "tagline": "For agencies and teams running outreach at scale.",
         "cta": "Choose Growth",

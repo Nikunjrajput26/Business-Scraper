@@ -68,23 +68,21 @@ export default function RunForm({ onCreated }) {
           onChange={(e) => setLocation(e.target.value)}
         />
       </label>
-      <div className="row">
-        <label style={{ flex: "0 0 130px" }}>
-          Max records
-          <input
-            type="number"
-            min={1}
-            max={60}
-            value={maxRecords}
-            onChange={(e) => setMaxRecords(e.target.value)}
-          />
-          <span className="field-hint">Up to 60 per search</span>
-        </label>
-        <label className="checkbox-label" style={{ flex: 1 }}>
-          <input type="checkbox" checked={includeEmail} onChange={(e) => setIncludeEmail(e.target.checked)} />
-          Scrape emails from websites
-        </label>
-      </div>
+      <label style={{ maxWidth: 160 }}>
+        Max records
+        <input
+          type="number"
+          min={1}
+          max={60}
+          value={maxRecords}
+          onChange={(e) => setMaxRecords(e.target.value)}
+        />
+        <span className="field-hint">Up to 60 per search</span>
+      </label>
+      <label className="checkbox-label">
+        <input type="checkbox" checked={includeEmail} onChange={(e) => setIncludeEmail(e.target.checked)} />
+        Scrape emails from websites
+      </label>
       {error && <div className="error">{error}</div>}
       <button type="submit" disabled={busy}>
         {busy ? "Starting..." : "Run Scraper"}

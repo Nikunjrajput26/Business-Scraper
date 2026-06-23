@@ -19,20 +19,42 @@ export default function Dashboard() {
   const [keyBusy, setKeyBusy] = useState(false);
   const [keyMsg, setKeyMsg] = useState("");
   const [aiKeyInput, setAiKeyInput] = useState("");
+  const [aiProvider, setAiProvider] = useState("anthropic");
   const [aiBusy, setAiBusy] = useState(false);
   const [aiMsg, setAiMsg] = useState("");
   const [smtp, setSmtp] = useState({ smtp_host: "", smtp_port: 587, smtp_username: "", smtp_password: "", smtp_from_name: "" });
   const [smtpBusy, setSmtpBusy] = useState(false);
   const [smtpMsg, setSmtpMsg] = useState("");
+  const [pw, setPw] = useState({ current: "", next: "", confirm: "" });
+  const [pwBusy, setPwBusy] = useState(false);
+  const [pwMsg, setPwMsg] = useState("");
   const pollRef = useRef(null);
+
+  const handleChangePassword = async () => {
+    setPwMsg("");
+    if (pw.next !== pw.confirm) {
+      setPwMsg("New passwords do not match.");
+      return;
+    }
+    setPwBusy(true);
+    try {
+      await api.changePassword(pw.current, pw.next);
+      setPw({ current: "", next: "", confirm: "" });
+      setPwMsg("Password updated.");
+    } catch (err) {
+      setPwMsg(err.message);
+    } finally {
+      setPwBusy(false);
+    }
+  };
 
   const handleSaveAiKey = async () => {
     setAiBusy(true);
     setAiMsg("");
     try {
-      await api.saveAnthropicKey(aiKeyInput.trim());
+      await api.saveAiKey(aiProvider, aiKeyInput.trim());
       setAiKeyInput("");
-      setAiMsg("Anthropic key saved — AI suggestions are now enabled.");
+      setAiMsg("AI key saved — suggestions are now enabled.");
       await refreshUser();
     } catch (err) {
       setAiMsg(err.message);
@@ -45,8 +67,8 @@ export default function Dashboard() {
     setAiBusy(true);
     setAiMsg("");
     try {
-      await api.deleteAnthropicKey();
-      setAiMsg("Anthropic key removed.");
+      await api.deleteAiKey();
+      setAiMsg("AI key removed.");
       await refreshUser();
     } catch (err) {
       setAiMsg(err.message);
@@ -394,6 +416,53 @@ export default function Dashboard() {
                   Plan
                   <input type="text" value={user?.plan || "Free"} disabled style={{ textTransform: "capitalize" }} />
                 </label>
+                <button style={{ marginTop: 14 }} onClick={() => setTab("billing")}>
+                  Upgrade plan
+                </button>
+
+                <div style={{ borderTop: "1px solid var(--border)", margin: "24px 0 0", paddingTop: 20 }}>
+                  <h3 style={{ margin: "0 0 4px", fontSize: 15 }}>Change password</h3>
+                  <p className="stat-sub" style={{ marginBottom: 16 }}>
+                    Update the password you use to log in.
+                  </p>
+                  <label style={{ maxWidth: 380, marginBottom: 14 }}>
+                    Current password
+                    <input
+                      type="password"
+                      value={pw.current}
+                      onChange={(e) => setPw({ ...pw, current: e.target.value })}
+                      autoComplete="current-password"
+                    />
+                  </label>
+                  <label style={{ maxWidth: 380, marginBottom: 14 }}>
+                    New password
+                    <input
+                      type="password"
+                      value={pw.next}
+                      onChange={(e) => setPw({ ...pw, next: e.target.value })}
+                      minLength={8}
+                      autoComplete="new-password"
+                    />
+                  </label>
+                  <label style={{ maxWidth: 380 }}>
+                    Confirm new password
+                    <input
+                      type="password"
+                      value={pw.confirm}
+                      onChange={(e) => setPw({ ...pw, confirm: e.target.value })}
+                      minLength={8}
+                      autoComplete="new-password"
+                    />
+                  </label>
+                  <button
+                    style={{ marginTop: 14 }}
+                    onClick={handleChangePassword}
+                    disabled={pwBusy || !pw.current || pw.next.length < 8 || !pw.confirm}
+                  >
+                    {pwBusy ? "Updating…" : "Update password"}
+                  </button>
+                  {pwMsg && <div className="stat-sub" style={{ marginTop: 12 }}>{pwMsg}</div>}
+                </div>
               </div>
             </div>
           )}
@@ -453,15 +522,20 @@ export default function Dashboard() {
             <div className="card" style={{ marginTop: 24 }}>
               <div className="card-header">
                 <div>
-                  <h3>Anthropic API key</h3>
-                  <p>Add your own Anthropic key to generate AI service suggestions for each lead.</p>
+                  <h3>AI provider key</h3>
+                  <p>
+                    Bring your own AI key to generate service suggestions for each lead. Choose your
+                    provider and paste its API key — Anthropic (Claude), OpenAI (GPT), or Google Gemini.
+                  </p>
                 </div>
               </div>
               <div className="card-body">
                 {user?.has_ai_key ? (
                   <div>
                     <div style={{ marginBottom: 14 }}>
-                      <span className="badge badge-completed">AI suggestions enabled</span>
+                      <span className="badge badge-completed">
+                        AI suggestions enabled · {user?.ai_provider || "anthropic"}
+                      </span>
                     </div>
                     <button className="btn-secondary" onClick={handleRemoveAiKey} disabled={aiBusy}>
                       {aiBusy ? "Removing…" : "Remove key"}
@@ -469,16 +543,32 @@ export default function Dashboard() {
                   </div>
                 ) : (
                   <>
-                    <label style={{ maxWidth: 480 }}>
-                      API key
-                      <input
-                        type="password"
-                        value={aiKeyInput}
-                        onChange={(e) => setAiKeyInput(e.target.value)}
-                        placeholder="sk-ant-..."
-                        autoComplete="off"
-                      />
-                    </label>
+                    <div className="row" style={{ gap: 16, flexWrap: "wrap" }}>
+                      <label style={{ flex: "0 0 200px" }}>
+                        Provider
+                        <select value={aiProvider} onChange={(e) => setAiProvider(e.target.value)}>
+                          <option value="anthropic">Anthropic (Claude)</option>
+                          <option value="openai">OpenAI (GPT)</option>
+                          <option value="gemini">Google Gemini</option>
+                        </select>
+                      </label>
+                      <label style={{ flex: "1 1 260px" }}>
+                        API key
+                        <input
+                          type="password"
+                          value={aiKeyInput}
+                          onChange={(e) => setAiKeyInput(e.target.value)}
+                          placeholder={
+                            aiProvider === "anthropic"
+                              ? "sk-ant-..."
+                              : aiProvider === "openai"
+                              ? "sk-..."
+                              : "AIza..."
+                          }
+                          autoComplete="off"
+                        />
+                      </label>
+                    </div>
                     <button
                       onClick={handleSaveAiKey}
                       disabled={aiBusy || aiKeyInput.trim().length < 10}

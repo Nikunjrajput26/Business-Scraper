@@ -30,8 +30,11 @@ class User(Base):
     # Bring-your-own Google Places API key. When set, scrapes run on this
     # key and the monthly lead quota is no longer enforced (Enterprise).
     google_api_key: Mapped[str] = mapped_column(Text, nullable=True)
-    # Bring-your-own Anthropic key, used for AI lead suggestions.
+    # Bring-your-own AI key for lead suggestions. The column is named
+    # anthropic_api_key for historical reasons but holds the key for whichever
+    # provider is selected in ai_provider (anthropic | openai | gemini).
     anthropic_api_key: Mapped[str] = mapped_column(Text, nullable=True)
+    ai_provider: Mapped[str] = mapped_column(String(50), default="anthropic")
     # Per-user outbound email (SMTP / Gmail). Used to send outreach to leads.
     smtp_host: Mapped[str] = mapped_column(String(255), nullable=True)
     smtp_port: Mapped[int] = mapped_column(Integer, nullable=True)

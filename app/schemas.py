@@ -40,6 +40,7 @@ class UserResponse(BaseModel):
     leads_used_this_period: int
     has_own_api_key: bool = False
     has_ai_key: bool = False
+    ai_provider: Optional[str] = "anthropic"
     has_smtp: bool = False
     # Non-secret SMTP fields, so the form can show what's saved.
     smtp_host: Optional[str] = None
@@ -59,8 +60,14 @@ class ApiKeyRequest(BaseModel):
     api_key: str = Field(min_length=10, description="Your Google Places API key")
 
 
-class AnthropicKeyRequest(BaseModel):
-    api_key: str = Field(min_length=10, description="Your Anthropic API key")
+class ChangePasswordRequest(BaseModel):
+    current_password: str
+    new_password: str = Field(min_length=8)
+
+
+class AiKeyRequest(BaseModel):
+    provider: str = Field(default="anthropic", description="anthropic | openai | gemini")
+    api_key: str = Field(min_length=10, description="Your AI provider API key")
 
 
 class SmtpSettingsRequest(BaseModel):

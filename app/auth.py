@@ -10,7 +10,17 @@ from sqlalchemy.orm import Session
 from app.db import get_db
 from app.models import User
 
-SECRET_KEY = os.getenv("JWT_SECRET_KEY", "dev-secret-change-me")
+_DEV_SECRET = "dev-secret-change-me"
+SECRET_KEY = os.getenv("JWT_SECRET_KEY", "").strip()
+# Production is anything not running on local SQLite (i.e. a real DATABASE_URL).
+_IS_PRODUCTION = not os.getenv("DATABASE_URL", "sqlite").startswith("sqlite")
+if not SECRET_KEY or SECRET_KEY == _DEV_SECRET:
+    if _IS_PRODUCTION:
+        raise RuntimeError(
+            "JWT_SECRET_KEY must be set to a strong random value in production. "
+            "Generate one with: python -c \"import secrets; print(secrets.token_urlsafe(48))\""
+        )
+    SECRET_KEY = _DEV_SECRET  # local development only
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 7
 

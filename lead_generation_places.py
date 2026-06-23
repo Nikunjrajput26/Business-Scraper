@@ -1,11 +1,13 @@
 import argparse
 import csv
+import ipaddress
 import os
 import re
+import socket
 import time
 from dataclasses import dataclass
 from typing import Callable, Dict, List, Optional, Set, Tuple
-from urllib.parse import urljoin
+from urllib.parse import urljoin, urlparse
 
 import requests
 from bs4 import BeautifulSoup
@@ -44,6 +46,48 @@ class LeadRecord:
             "Country": self.country,
             "Email": self.email,
         }
+
+
+def is_public_http_url(url: str) -> bool:
+    """SSRF guard: only allow http(s) URLs that resolve to public IPs.
+
+    Blocks loopback/private/link-local/reserved ranges (e.g. 127.0.0.1,
+    10.x, 192.168.x, 169.254.169.254 cloud metadata) so a malicious website
+    value can't make the server fetch internal resources.
+    """
+    try:
+        parsed = urlparse(url)
+    except ValueError:
+        return False
+    if parsed.scheme not in ("http", "https") or not parsed.hostname:
+        return False
+    try:
+        infos = socket.getaddrinfo(parsed.hostname, None)
+    except socket.gaierror:
+        return False
+    for info in infos:
+        try:
+            addr = ipaddress.ip_address(info[4][0])
+        except ValueError:
+            continue
+        if (
+            addr.is_private
+            or addr.is_loopback
+            or addr.is_link_local
+            or addr.is_reserved
+            or addr.is_multicast
+            or addr.is_unspecified
+        ):
+            return False
+    return True
+
+
+def csv_safe(value) -> str:
+    """Neutralize CSV/formula injection in spreadsheet exports."""
+    s = "" if value is None else str(value)
+    if s[:1] in ("=", "+", "-", "@", "\t", "\r"):
+        return "'" + s
+    return s
 
 
 def create_http_session() -> requests.Session:
@@ -331,6 +375,8 @@ def scrape_emails_for_website(session: requests.Session, website_url: str) -> st
         if url in visited:
             return None
         visited.add(url)
+        if not is_public_http_url(url):
+            return None
         try:
             resp = session.get(url, timeout=8, headers=headers)
             if resp.status_code >= 400:
@@ -380,7 +426,7 @@ def save_to_csv(records: List[LeadRecord], output_file: str) -> None:
         )
         writer.writeheader()
         for record in records:
-            writer.writerow(record.to_row())
+            writer.writerow({k: csv_safe(v) for k, v in record.to_row().items()})
 
 
 def run_pipeline(

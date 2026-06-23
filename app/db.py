@@ -56,6 +56,7 @@ def _run_lightweight_migrations() -> None:
         {
             "google_api_key": "TEXT",
             "anthropic_api_key": "TEXT",
+            "ai_provider": "VARCHAR(50)",
             "full_name": "VARCHAR(255)",
             "company_name": "VARCHAR(255)",
             "phone": "VARCHAR(50)",

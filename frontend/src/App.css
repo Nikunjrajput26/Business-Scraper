@@ -350,7 +350,7 @@ input[type="checkbox"] {
   text-transform: uppercase;
   letter-spacing: 0.04em;
   color: var(--text-faint);
-  padding: 0 8px;
+  padding: 0 10px;
   margin-bottom: 6px;
 }
 
@@ -364,6 +364,7 @@ input[type="checkbox"] {
 .nav-item {
   display: flex;
   align-items: center;
+  justify-content: flex-start;
   gap: 10px;
   padding: 8px 10px;
   border-radius: var(--radius-sm);
@@ -379,7 +380,9 @@ input[type="checkbox"] {
 }
 
 .nav-item svg {
-  flex-shrink: 0;
+  flex: 0 0 16px;
+  width: 16px;
+  height: 16px;
   color: var(--text-faint);
 }
 
@@ -845,27 +848,33 @@ tbody tr:last-child td {
 }
 
 .leads-table .col-business {
-  width: 30%;
+  width: 22%;
 }
 
 .leads-table .col-phone {
-  width: 15%;
-}
-
-.leads-table .col-rating {
-  width: 9%;
-}
-
-.leads-table .col-city {
   width: 13%;
 }
 
+.leads-table .col-rating {
+  width: 7%;
+}
+
+.leads-table .col-city {
+  width: 11%;
+}
+
 .leads-table .col-email {
-  width: 25%;
+  width: 22%;
 }
 
 .leads-table .col-website {
-  width: 8%;
+  width: 6%;
+}
+
+.leads-table .col-actions {
+  width: 19%;
+  overflow: visible;
+  white-space: nowrap;
 }
 
 /* ---------- Misc ---------- */
@@ -955,3 +964,18 @@ tbody tr:last-child td {
   padding: 4px; border-radius: 6px;
 }
 .icon-btn:hover:not(:disabled) { background: var(--bg); color: var(--text); }
+
+select {
+  background: var(--surface);
+  border: 1.5px solid var(--border-strong);
+  color: var(--text);
+  padding: 11px 14px;
+  border-radius: 9px;
+  font-size: 14.5px;
+  font-family: inherit;
+  width: 100%;
+  cursor: pointer;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+select:hover { border-color: #b9bdc7; }
+select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3.5px var(--accent-soft); }

@@ -3,21 +3,26 @@ import io
 import os
 from datetime import datetime, timedelta
 
-from fastapi import BackgroundTasks, Depends, FastAPI, HTTPException
+from fastapi import BackgroundTasks, Depends, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from slowapi.util import get_remote_address
 from sqlalchemy.orm import Session
 
+from app.ai import generate_pitch, normalize_provider
 from app.auth import create_access_token, get_current_user, hash_password, verify_password
+from app.crypto import decrypt, encrypt
 from app.db import get_db, init_db
+from app.email_send import send_email
 from app.jobs import execute_run
 from app.models import Lead, Run, User
-from app.ai import generate_pitch
-from app.email_send import send_email
 from app.plans import PLANS, list_addons, list_plans, plan_quota
 from app.schemas import (
-    AnthropicKeyRequest,
+    AiKeyRequest,
     ApiKeyRequest,
+    ChangePasswordRequest,
     LeadResponse,
     LoginRequest,
     PlanSelectRequest,
@@ -29,9 +34,14 @@ from app.schemas import (
     TokenResponse,
     UserResponse,
 )
-from lead_generation_places import parse_user_prompt
+from lead_generation_places import csv_safe, parse_user_prompt
 
 app = FastAPI(title="Lead Scraper SaaS API")
+
+# Rate limiting (in-memory; keyed by client IP) to blunt credential brute-force.
+limiter = Limiter(key_func=get_remote_address)
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 cors_origins = [
     origin.strip()
@@ -54,7 +64,8 @@ def on_startup() -> None:
 
 
 @app.post("/auth/signup", response_model=TokenResponse)
-def signup(payload: SignupRequest, db: Session = Depends(get_db)) -> TokenResponse:
+@limiter.limit("5/minute")
+def signup(request: Request, payload: SignupRequest, db: Session = Depends(get_db)) -> TokenResponse:
     existing = db.query(User).filter(User.email == payload.email).first()
     if existing:
         raise HTTPException(status_code=400, detail="Email already registered.")
@@ -73,7 +84,8 @@ def signup(payload: SignupRequest, db: Session = Depends(get_db)) -> TokenRespon
 
 
 @app.post("/auth/login", response_model=TokenResponse)
-def login(payload: LoginRequest, db: Session = Depends(get_db)) -> TokenResponse:
+@limiter.limit("10/minute")
+def login(request: Request, payload: LoginRequest, db: Session = Depends(get_db)) -> TokenResponse:
     user = db.query(User).filter(User.email == payload.email).first()
     if not user or not verify_password(payload.password, user.hashed_password):
         raise HTTPException(status_code=401, detail="Incorrect email or password.")
@@ -120,7 +132,7 @@ def save_api_key(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> User:
-    current_user.google_api_key = payload.api_key.strip()
+    current_user.google_api_key = encrypt(payload.api_key.strip())
     db.commit()
     db.refresh(current_user)
     return current_user
@@ -137,20 +149,34 @@ def delete_api_key(
     return current_user
 
 
-@app.put("/me/anthropic-key", response_model=UserResponse)
-def save_anthropic_key(
-    payload: AnthropicKeyRequest,
+@app.post("/me/password")
+def change_password(
+    payload: ChangePasswordRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> dict:
+    if not verify_password(payload.current_password, current_user.hashed_password):
+        raise HTTPException(status_code=400, detail="Current password is incorrect.")
+    current_user.hashed_password = hash_password(payload.new_password)
+    db.commit()
+    return {"ok": True}
+
+
+@app.put("/me/ai-key", response_model=UserResponse)
+def save_ai_key(
+    payload: AiKeyRequest,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> User:
-    current_user.anthropic_api_key = payload.api_key.strip()
+    current_user.ai_provider = normalize_provider(payload.provider)
+    current_user.anthropic_api_key = encrypt(payload.api_key.strip())
     db.commit()
     db.refresh(current_user)
     return current_user
 
 
-@app.delete("/me/anthropic-key", response_model=UserResponse)
-def delete_anthropic_key(
+@app.delete("/me/ai-key", response_model=UserResponse)
+def delete_ai_key(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> User:
@@ -169,7 +195,7 @@ def save_smtp(
     current_user.smtp_host = payload.smtp_host.strip()
     current_user.smtp_port = payload.smtp_port
     current_user.smtp_username = payload.smtp_username.strip()
-    current_user.smtp_password = payload.smtp_password
+    current_user.smtp_password = encrypt(payload.smtp_password)
     current_user.smtp_from_name = (payload.smtp_from_name or "").strip()
     db.commit()
     db.refresh(current_user)
@@ -313,10 +339,12 @@ def generate_lead_pitch(
     if not current_user.has_ai_key:
         raise HTTPException(
             status_code=400,
-            detail="Add your Anthropic API key in Settings to generate AI suggestions.",
+            detail="Add your AI API key in Settings to generate AI suggestions.",
         )
     try:
-        lead.ai_pitch = generate_pitch(lead, current_user.anthropic_api_key)
+        lead.ai_pitch = generate_pitch(
+            lead, current_user.ai_provider, decrypt(current_user.anthropic_api_key)
+        )
     except Exception as exc:  # noqa: BLE001 - surface AI failures to the user
         raise HTTPException(status_code=502, detail=str(exc))
     db.commit()
@@ -366,16 +394,16 @@ def export_run_csv(
     for lead in leads:
         writer.writerow(
             {
-                "Business Name": lead.business_name,
-                "Phone Number": lead.phone_number,
-                "Website": lead.website,
-                "Address": lead.address,
-                "Rating": lead.rating,
-                "Total Reviews": lead.total_reviews,
-                "Category": lead.category,
-                "City": lead.city,
-                "Country": lead.country,
-                "Email": lead.email,
+                "Business Name": csv_safe(lead.business_name),
+                "Phone Number": csv_safe(lead.phone_number),
+                "Website": csv_safe(lead.website),
+                "Address": csv_safe(lead.address),
+                "Rating": csv_safe(lead.rating),
+                "Total Reviews": csv_safe(lead.total_reviews),
+                "Category": csv_safe(lead.category),
+                "City": csv_safe(lead.city),
+                "Country": csv_safe(lead.country),
+                "Email": csv_safe(lead.email),
             }
         )
     buffer.seek(0)

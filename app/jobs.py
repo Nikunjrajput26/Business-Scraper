@@ -1,5 +1,6 @@
 from datetime import datetime, timezone
 
+from app.crypto import decrypt
 from app.db import SessionLocal
 from app.models import Lead, Run, User
 from lead_generation_places import run_pipeline
@@ -26,7 +27,7 @@ def execute_run(run_id: str, requested_max_records: int) -> None:
         user = db.get(User, run.user_id)
         # Bring-your-own-key users run on their own Google billing, so the
         # plan quota is not enforced and their key is used for the scrape.
-        user_api_key = user.google_api_key if user.has_own_api_key else None
+        user_api_key = decrypt(user.google_api_key) if user.has_own_api_key else None
         if user_api_key:
             effective_max = requested_max_records
         else:

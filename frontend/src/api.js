@@ -41,8 +41,10 @@ export const api = {
   selectPlan: (plan) => request("/me/plan", { method: "POST", body: { plan } }),
   saveApiKey: (apiKey) => request("/me/api-key", { method: "PUT", body: { api_key: apiKey } }),
   deleteApiKey: () => request("/me/api-key", { method: "DELETE" }),
-  saveAnthropicKey: (apiKey) => request("/me/anthropic-key", { method: "PUT", body: { api_key: apiKey } }),
-  deleteAnthropicKey: () => request("/me/anthropic-key", { method: "DELETE" }),
+  changePassword: (currentPassword, newPassword) =>
+    request("/me/password", { method: "POST", body: { current_password: currentPassword, new_password: newPassword } }),
+  saveAiKey: (provider, apiKey) => request("/me/ai-key", { method: "PUT", body: { provider, api_key: apiKey } }),
+  deleteAiKey: () => request("/me/ai-key", { method: "DELETE" }),
   saveSmtp: (settings) => request("/me/smtp", { method: "PUT", body: settings }),
   deleteSmtp: () => request("/me/smtp", { method: "DELETE" }),
   generatePitch: (leadId) => request(`/leads/${leadId}/pitch`, { method: "POST" }),

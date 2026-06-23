@@ -8,6 +8,14 @@
   --brand-grad: #4f46e5;
   --brand-grad-aside: #0d0e12;
   --brand-solid: #4f46e5;
+  /* Promoted to :root so PlanCards / AddonBanner also render correctly when
+     used inside the app dashboard (outside the .mkt scope). */
+  --mkt-grad: #4f46e5;
+  --mkt-grad-soft: #eef2ff;
+  --mkt-line: #ececef;
+  --mkt-ink: #0a0a0a;
+  --mkt-ink-2: #3a4154;
+  --mkt-ink-3: #6b7280;
 }
 
 .authx {

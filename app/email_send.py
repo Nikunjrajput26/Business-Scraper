@@ -4,6 +4,8 @@ import smtplib
 import ssl
 from email.message import EmailMessage
 
+from app.crypto import decrypt
+
 
 def send_email(user, to_address: str, subject: str, body: str) -> None:
     """Send a plain-text email using the user's configured SMTP credentials.
@@ -18,7 +20,7 @@ def send_email(user, to_address: str, subject: str, body: str) -> None:
     host = user.smtp_host.strip()
     port = int(user.smtp_port or 587)
     username = user.smtp_username.strip()
-    password = user.smtp_password
+    password = decrypt(user.smtp_password)
     from_name = (user.smtp_from_name or username).strip()
 
     msg = EmailMessage()
