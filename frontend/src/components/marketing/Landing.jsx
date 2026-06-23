@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Search, Mail, Download, KeyRound, Zap, ShieldCheck, Check, FileSpreadsheet } from "lucide-react";
+import { Search, Mail, Download, KeyRound, Sparkles, Send, Check, FileSpreadsheet } from "lucide-react";
 import MarketingNav from "./MarketingNav";
 import PlanCards from "./PlanCards";
 import AddonBanner from "./AddonBanner";
@@ -36,28 +36,28 @@ const FEATURES = [
   },
   {
     icon: Mail,
-    title: "Real contact details",
+    title: "Verified contact details",
     body: "We crawl each business website to surface emails and phone numbers, then de-duplicate every list automatically.",
   },
   {
-    icon: Download,
-    title: "Export in one click",
-    body: "Download clean, ready-to-use CSV lead lists you can drop straight into your CRM or outreach tool.",
+    icon: Sparkles,
+    title: "AI service suggestions",
+    body: "For every lead, AI tells you what services you could pitch them — new website, SEO, automation — based on their data. Bring your own Anthropic, OpenAI, or Gemini key.",
   },
   {
-    icon: Zap,
-    title: "Built for volume",
-    body: "Background scraping with smart retries and pagination keeps large pulls running while you get on with work.",
+    icon: Send,
+    title: "Email outreach, built in",
+    body: "Connect your own Gmail / SMTP and send personalized outreach to leads straight from the dashboard — no copy-paste, no extra tool.",
+  },
+  {
+    icon: Download,
+    title: "One-click CSV export",
+    body: "Download clean, ready-to-use lead lists you can drop straight into your CRM or spreadsheet.",
   },
   {
     icon: KeyRound,
-    title: "Bring your own API key",
-    body: "Add the one-time key add-on and scrape with no monthly cap, on your own Google billing and rate limits.",
-  },
-  {
-    icon: ShieldCheck,
-    title: "Your data, your control",
-    body: "Every search and lead list is tied to your account and exportable whenever you need it. No lock-in.",
+    title: "Bring your own keys",
+    body: "Plug in your own Google Places key for unlimited scraping, and your own AI/email keys — you stay in control of cost and data.",
   },
 ];
 
@@ -140,13 +140,16 @@ export default function Landing() {
 
           <div className="mkt-sheet-note">
             <span>
-              <Check size={14} strokeWidth={2.5} /> Emails &amp; phones verified
+              <Check size={14} strokeWidth={2.5} /> 10 verified fields per lead
             </span>
             <span>
-              <FileSpreadsheet size={14} strokeWidth={2} /> 10 fields per lead
+              <Sparkles size={14} strokeWidth={2} /> AI pitch ideas per lead
             </span>
             <span>
-              <Download size={14} strokeWidth={2} /> CSV &amp; Sheets export
+              <Send size={14} strokeWidth={2} /> Email outreach built in
+            </span>
+            <span>
+              <Download size={14} strokeWidth={2} /> CSV export
             </span>
           </div>
         </div>
@@ -203,8 +206,8 @@ export default function Landing() {
             </div>
             <div className="mkt-step">
               <span className="mkt-step-num">3</span>
-              <h3>Export &amp; reach out</h3>
-              <p>Download a clean, de-duplicated CSV and start your outreach the same day.</p>
+              <h3>Get AI ideas &amp; reach out</h3>
+              <p>See AI-suggested services to pitch each lead, email them from the app, or export a clean CSV.</p>
             </div>
           </div>
         </div>
