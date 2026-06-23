@@ -11,9 +11,12 @@ from app.auth import create_access_token, get_current_user, hash_password, verif
 from app.db import get_db, init_db
 from app.jobs import execute_run
 from app.models import Lead, Run, User
+from app.plans import PLANS, list_plans, plan_quota
 from app.schemas import (
+    ApiKeyRequest,
     LeadResponse,
     LoginRequest,
+    PlanSelectRequest,
     RunCreateRequest,
     RunResponse,
     SignupRequest,
@@ -70,6 +73,52 @@ def me(current_user: User = Depends(get_current_user)) -> User:
     return current_user
 
 
+@app.get("/plans")
+def get_plans() -> list[dict]:
+    """Public pricing tiers, consumed by the marketing site and billing UI."""
+    return list_plans()
+
+
+@app.post("/me/plan", response_model=UserResponse)
+def select_plan(
+    payload: PlanSelectRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> User:
+    plan_id = payload.plan.strip().lower()
+    if plan_id not in PLANS:
+        raise HTTPException(status_code=400, detail="Unknown plan.")
+
+    current_user.plan = plan_id
+    current_user.monthly_lead_quota = plan_quota(plan_id)
+    db.commit()
+    db.refresh(current_user)
+    return current_user
+
+
+@app.put("/me/api-key", response_model=UserResponse)
+def save_api_key(
+    payload: ApiKeyRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> User:
+    current_user.google_api_key = payload.api_key.strip()
+    db.commit()
+    db.refresh(current_user)
+    return current_user
+
+
+@app.delete("/me/api-key", response_model=UserResponse)
+def delete_api_key(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> User:
+    current_user.google_api_key = None
+    db.commit()
+    db.refresh(current_user)
+    return current_user
+
+
 @app.post("/runs", response_model=RunResponse)
 def create_run(
     payload: RunCreateRequest,
@@ -92,8 +141,11 @@ def create_run(
     if not location:
         raise HTTPException(status_code=400, detail="Location is required.")
 
+    # Bring-your-own-key users scrape on their own Google billing, so the
+    # plan quota is not enforced for them.
+    has_own_key = current_user.has_own_api_key
     remaining_quota = max(current_user.monthly_lead_quota - current_user.leads_used_this_period, 0)
-    if remaining_quota <= 0:
+    if not has_own_key and remaining_quota <= 0:
         raise HTTPException(status_code=402, detail="Monthly lead quota exhausted. Upgrade your plan.")
 
     run = Run(
@@ -106,7 +158,7 @@ def create_run(
     db.commit()
     db.refresh(run)
 
-    requested_max = min(payload.max_records, remaining_quota)
+    requested_max = payload.max_records if has_own_key else min(payload.max_records, remaining_quota)
     background_tasks.add_task(execute_run, run.id, requested_max)
 
     return run

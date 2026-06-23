@@ -24,8 +24,14 @@ def execute_run(run_id: str, requested_max_records: int) -> None:
         db.commit()
 
         user = db.get(User, run.user_id)
-        remaining_quota = max(user.monthly_lead_quota - user.leads_used_this_period, 0)
-        effective_max = min(requested_max_records, remaining_quota)
+        # Bring-your-own-key users run on their own Google billing, so the
+        # plan quota is not enforced and their key is used for the scrape.
+        user_api_key = user.google_api_key if user.has_own_api_key else None
+        if user_api_key:
+            effective_max = requested_max_records
+        else:
+            remaining_quota = max(user.monthly_lead_quota - user.leads_used_this_period, 0)
+            effective_max = min(requested_max_records, remaining_quota)
         terms = [t.strip() for t in run.search_terms.split(",") if t.strip()]
         location_query = run.location_query
 
@@ -45,6 +51,7 @@ def execute_run(run_id: str, requested_max_records: int) -> None:
             save_output=False,
             max_records=effective_max,
             include_email_scrape=True,
+            api_key=user_api_key,
             progress_cb=None,
         )
     except Exception as exc:  # noqa: BLE001 - surface any pipeline failure to the user

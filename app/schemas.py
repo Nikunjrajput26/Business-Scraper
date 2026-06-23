@@ -25,9 +25,18 @@ class UserResponse(BaseModel):
     plan: str
     monthly_lead_quota: int
     leads_used_this_period: int
+    has_own_api_key: bool = False
 
     class Config:
         from_attributes = True
+
+
+class PlanSelectRequest(BaseModel):
+    plan: str
+
+
+class ApiKeyRequest(BaseModel):
+    api_key: str = Field(min_length=10, description="Your Google Places API key")
 
 
 class RunCreateRequest(BaseModel):

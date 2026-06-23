@@ -5,6 +5,7 @@ import { useAuth } from "../AuthContext";
 import RunForm from "./RunForm";
 import RunsList from "./RunsList";
 import LeadsTable from "./LeadsTable";
+import PlanCards from "./marketing/PlanCards";
 
 export default function Dashboard() {
   const { user, logout, refreshUser } = useAuth();
@@ -12,7 +13,52 @@ export default function Dashboard() {
   const [runs, setRuns] = useState([]);
   const [selectedRunId, setSelectedRunId] = useState(null);
   const [leads, setLeads] = useState([]);
+  const [busyPlan, setBusyPlan] = useState(null);
+  const [apiKeyInput, setApiKeyInput] = useState("");
+  const [keyBusy, setKeyBusy] = useState(false);
+  const [keyMsg, setKeyMsg] = useState("");
   const pollRef = useRef(null);
+
+  const handleSelectPlan = async (planId) => {
+    setBusyPlan(planId);
+    try {
+      await api.selectPlan(planId);
+      await refreshUser();
+    } catch (err) {
+      window.alert(err.message);
+    } finally {
+      setBusyPlan(null);
+    }
+  };
+
+  const handleSaveKey = async () => {
+    setKeyBusy(true);
+    setKeyMsg("");
+    try {
+      await api.saveApiKey(apiKeyInput.trim());
+      setApiKeyInput("");
+      setKeyMsg("API key saved — your scrapes now run unlimited on your own key.");
+      await refreshUser();
+    } catch (err) {
+      setKeyMsg(err.message);
+    } finally {
+      setKeyBusy(false);
+    }
+  };
+
+  const handleRemoveKey = async () => {
+    setKeyBusy(true);
+    setKeyMsg("");
+    try {
+      await api.deleteApiKey();
+      setKeyMsg("API key removed. Scrapes now use the plan quota again.");
+      await refreshUser();
+    } catch (err) {
+      setKeyMsg(err.message);
+    } finally {
+      setKeyBusy(false);
+    }
+  };
 
   const loadRuns = useCallback(async () => {
     const data = await api.listRuns();
@@ -242,12 +288,22 @@ export default function Dashboard() {
                     <div className="stat-sub">{user?.leads_used_this_period} used this period</div>
                   </div>
                   <div className="stat-card">
-                    <div className="stat-label">Billing</div>
+                    <div className="stat-label">API key</div>
                     <div className="stat-value" style={{ fontSize: 16 }}>
-                      Not connected
+                      {user?.has_own_api_key ? "Your own key" : "Shared"}
                     </div>
-                    <div className="stat-sub">Stripe integration coming soon</div>
+                    <div className="stat-sub">
+                      {user?.has_own_api_key ? "Unlimited — quota not enforced" : "Add yours in Settings"}
+                    </div>
                   </div>
+                </div>
+
+                <div style={{ marginTop: 28 }}>
+                  <h3 style={{ margin: "0 0 4px" }}>Choose a plan</h3>
+                  <p className="stat-sub" style={{ marginBottom: 16 }}>
+                    Switching takes effect immediately. No payment is collected in this demo.
+                  </p>
+                  <PlanCards currentPlan={user?.plan} onSelect={handleSelectPlan} busyPlan={busyPlan} />
                 </div>
               </div>
             </div>
@@ -270,6 +326,57 @@ export default function Dashboard() {
                   Plan
                   <input type="text" value={user?.plan || "Free"} disabled style={{ textTransform: "capitalize" }} />
                 </label>
+              </div>
+            </div>
+          )}
+
+          {tab === "settings" && (
+            <div className="card" style={{ marginTop: 24 }}>
+              <div className="card-header">
+                <div>
+                  <h3>Google Places API key</h3>
+                  <p>
+                    Bring your own key to scrape with no monthly lead cap — searches run on your
+                    Google billing and rate limits.
+                  </p>
+                </div>
+              </div>
+              <div className="card-body">
+                {user?.has_own_api_key ? (
+                  <div className="byo-key-active">
+                    <div style={{ marginBottom: 14 }}>
+                      <span className="badge badge-completed">Your API key is active — unlimited scraping enabled</span>
+                    </div>
+                    <button className="btn-secondary" onClick={handleRemoveKey} disabled={keyBusy}>
+                      {keyBusy ? "Removing…" : "Remove key"}
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    <label style={{ maxWidth: 480 }}>
+                      API key
+                      <input
+                        type="password"
+                        value={apiKeyInput}
+                        onChange={(e) => setApiKeyInput(e.target.value)}
+                        placeholder="AIza..."
+                        autoComplete="off"
+                      />
+                    </label>
+                    <button
+                      onClick={handleSaveKey}
+                      disabled={keyBusy || apiKeyInput.trim().length < 10}
+                      style={{ marginTop: 14 }}
+                    >
+                      {keyBusy ? "Saving…" : "Save key"}
+                    </button>
+                  </>
+                )}
+                {keyMsg && (
+                  <div className="stat-sub" style={{ marginTop: 12 }}>
+                    {keyMsg}
+                  </div>
+                )}
               </div>
             </div>
           )}
